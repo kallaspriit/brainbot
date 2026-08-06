@@ -1,0 +1,564 @@
+#include "St3215.hpp"
+
+#include <Arduino.h>
+
+#include "St3215Log.hpp"
+
+// Per-byte timeout while waiting for a reply.
+static constexpr uint32_t kReplyTimeoutUs = 4000;
+
+// Calibration trigger value written to the torque-enable register.
+static constexpr uint8_t kCalibrationTrigger = 128;
+
+// Bytes read from PresentPosition onward for a full feedback block.
+static constexpr uint8_t kFeedbackLength = 15;
+
+// Maximum bytes scanned looking for a reply's 0xFF 0xFF header.
+static constexpr int kMaxHeaderScanBytes = 32;
+
+// Sign bit for position/speed/current (16-bit sign-magnitude). Load is special:
+// it is a 10-bit magnitude with bit 10 as the direction bit.
+static constexpr uint16_t kSignBit16 = 0x8000;
+static constexpr uint16_t kSignBitLoad = 0x0400;
+
+/**
+ * Decodes a Feetech sign-magnitude value. The given sign bit marks direction;
+ * the bits below it are the magnitude.
+ */
+static int decodeSignMagnitude(uint16_t value, uint16_t signBit) {
+    if (value & signBit) {
+        return -(int)(value & (signBit - 1));
+    }
+
+    return (int)value;
+}
+
+/** Encodes a signed value as Feetech 16-bit sign-magnitude (bit 15 = sign). */
+static uint16_t encodeSignMagnitude(int16_t value) {
+    if (value < 0) {
+        return (uint16_t)(-value) | kSignBit16;
+    }
+
+    return (uint16_t)value;
+}
+
+bool St3215::begin() {
+    return bus_.begin();
+}
+
+int St3215::ping(uint8_t id) {
+    sendPacket(id, Instruction::Ping, nullptr, 0);
+
+    uint8_t reply[4];
+    uint8_t count = 0;
+
+    if (readReply(reply, sizeof(reply), count, kReplyTimeoutUs) < 0) {
+        return -1;
+    }
+
+    return id;
+}
+
+bool St3215::setId(uint8_t fromId, uint8_t toId) {
+    // EEPROM is write-protected by default; unlock, write the ID, then re-lock.
+    // After the ID write the servo answers to the new ID, so the lock targets
+    // toId. Each EEPROM write needs a few ms to commit.
+    writeByte(fromId, Register::Lock, 0);
+    delay(10);
+    writeByte(fromId, Register::Id, toId);
+    delay(10);
+    writeByte(toId, Register::Lock, 1);
+    delay(20);
+
+    return ping(toId) != -1;
+}
+
+bool St3215::setTorque(uint8_t id, bool on) {
+    return writeByte(id, Register::TorqueEnable, on ? 1 : 0);
+}
+
+void St3215::relaxAll() {
+    // Broadcast write; servos do not reply to the broadcast ID, so nothing is
+    // read back.
+    const uint8_t params[] = {(uint8_t)Register::TorqueEnable, 0};
+    sendPacket(kBroadcastId, Instruction::Write, params, sizeof(params));
+}
+
+bool St3215::setMode(uint8_t id, Mode mode) {
+    return writeByte(id, Register::OperatingMode, (uint8_t)mode);
+}
+
+bool St3215::writePos(uint8_t id, int16_t position, uint16_t speed, uint8_t acc) {
+    const uint16_t encodedPosition = encodeSignMagnitude(position);
+
+    // Registers 41..47 are contiguous: acceleration, goal position, goal time
+    // (unused), goal speed.
+    const uint8_t params[] = {
+        (uint8_t)Register::Acceleration,
+        acc,
+        (uint8_t)(encodedPosition & 0xFF),
+        (uint8_t)((encodedPosition >> 8) & 0xFF),
+        0,
+        0,
+        (uint8_t)(speed & 0xFF),
+        (uint8_t)((speed >> 8) & 0xFF),
+    };
+    sendPacket(id, Instruction::Write, params, sizeof(params));
+
+    uint8_t reply[4];
+    uint8_t count = 0;
+
+    return readReply(reply, sizeof(reply), count, kReplyTimeoutUs) >= 0;
+}
+
+bool St3215::regWritePos(uint8_t id, int16_t position, uint16_t speed, uint8_t acc) {
+    const uint16_t encodedPosition = encodeSignMagnitude(position);
+
+    const uint8_t params[] = {
+        (uint8_t)Register::Acceleration,
+        acc,
+        (uint8_t)(encodedPosition & 0xFF),
+        (uint8_t)((encodedPosition >> 8) & 0xFF),
+        0,
+        0,
+        (uint8_t)(speed & 0xFF),
+        (uint8_t)((speed >> 8) & 0xFF),
+    };
+    sendPacket(id, Instruction::RegWrite, params, sizeof(params));
+
+    uint8_t reply[4];
+    uint8_t count = 0;
+
+    return readReply(reply, sizeof(reply), count, kReplyTimeoutUs) >= 0;
+}
+
+void St3215::action(uint8_t id) {
+    sendPacket(id, Instruction::Action, nullptr, 0);
+
+    if (id != kBroadcastId) {
+        uint8_t reply[4];
+        uint8_t count = 0;
+        readReply(reply, sizeof(reply), count, kReplyTimeoutUs);
+    }
+}
+
+void St3215::syncWritePos(const uint8_t* ids, uint8_t count, const int16_t* positions, const uint16_t* speeds, const uint8_t* accs) {
+    static constexpr uint8_t kDataLen = 7; // acc, posL, posH, timeL, timeH, spdL, spdH
+
+    uint8_t packet[256];
+    const uint8_t length = (kDataLen + 1) * count + 4;
+    uint16_t checksum = kBroadcastId + length + (uint8_t)Instruction::SyncWrite + (uint8_t)Register::Acceleration + kDataLen;
+
+    packet[0] = 0xFF;
+    packet[1] = 0xFF;
+    packet[2] = kBroadcastId;
+    packet[3] = length;
+    packet[4] = (uint8_t)Instruction::SyncWrite;
+    packet[5] = (uint8_t)Register::Acceleration;
+    packet[6] = kDataLen;
+
+    size_t index = 7;
+
+    for (uint8_t i = 0; i < count; i++) {
+        const uint16_t encodedPosition = encodeSignMagnitude(positions[i]);
+
+        const uint8_t block[kDataLen] = {
+            accs[i],
+            (uint8_t)(encodedPosition & 0xFF),
+            (uint8_t)((encodedPosition >> 8) & 0xFF),
+            0,
+            0,
+            (uint8_t)(speeds[i] & 0xFF),
+            (uint8_t)((speeds[i] >> 8) & 0xFF),
+        };
+
+        packet[index++] = ids[i];
+        checksum += ids[i];
+
+        for (uint8_t j = 0; j < kDataLen; j++) {
+            packet[index++] = block[j];
+            checksum += block[j];
+        }
+    }
+
+    packet[index++] = (uint8_t)(~checksum);
+
+    bus_.writePacket(packet, index);
+}
+
+bool St3215::writeSpeed(uint8_t id, int16_t speed, uint8_t acc) {
+    const uint16_t encodedSpeed = encodeSignMagnitude(speed);
+
+    if (!writeByte(id, Register::Acceleration, acc)) {
+        return false;
+    }
+
+    return writeWord(id, Register::GoalSpeedL, encodedSpeed);
+}
+
+bool St3215::stop(uint8_t id) {
+    const int position = readPosition(id);
+
+    if (position < 0) {
+        return false;
+    }
+
+    // Goal = present position halts position/step modes; goal speed 0 (the speed
+    // argument) halts speed/wheel mode.
+    return writePos(id, (int16_t)position, 0, 0);
+}
+
+bool St3215::calibrateMid(uint8_t id) {
+    return writeByte(id, Register::TorqueEnable, kCalibrationTrigger);
+}
+
+int St3215::readPosition(uint8_t id) {
+    const int value = readWord(id, Register::PresentPositionL);
+
+    if (value < 0) {
+        return -1;
+    }
+
+    return value & 0x7FFF;
+}
+
+bool St3215::readFeedback(uint8_t id, ServoFeedback& out) {
+    const uint8_t params[] = {(uint8_t)Register::PresentPositionL, kFeedbackLength};
+    sendPacket(id, Instruction::Read, params, sizeof(params));
+
+    uint8_t body[16];
+    uint8_t count = 0;
+
+    if (readReply(body, sizeof(body), count, kReplyTimeoutUs) < 0 || count < kFeedbackLength) {
+        out.isValid = false;
+
+        return false;
+    }
+
+    decodeFeedback(body, out);
+
+    if (out.status.raw != 0) {
+        ST_LOG_W("servo %u fault flags 0x%02X", id, out.status.raw);
+    }
+
+    return true;
+}
+
+bool St3215::syncReadFeedback(const uint8_t* ids, uint8_t count, ServoFeedback* out) {
+    // Build the sync-read request: FF FF FE LEN 82 ADDR DATALEN id... CHK
+    uint8_t packet[64];
+    const uint8_t length = count + 4;
+    uint16_t checksum = kBroadcastId + length + (uint8_t)Instruction::SyncRead + (uint8_t)Register::PresentPositionL + kFeedbackLength;
+
+    packet[0] = 0xFF;
+    packet[1] = 0xFF;
+    packet[2] = kBroadcastId;
+    packet[3] = length;
+    packet[4] = (uint8_t)Instruction::SyncRead;
+    packet[5] = (uint8_t)Register::PresentPositionL;
+    packet[6] = kFeedbackLength;
+
+    size_t index = 7;
+
+    for (uint8_t i = 0; i < count; i++) {
+        packet[index++] = ids[i];
+        checksum += ids[i];
+    }
+
+    packet[index++] = (uint8_t)(~checksum);
+
+    bus_.writePacket(packet, index);
+
+    // Each servo replies in turn, in the order listed.
+    bool allValid = true;
+
+    for (uint8_t i = 0; i < count; i++) {
+        uint8_t body[16];
+        uint8_t replyCount = 0;
+        uint8_t replyId = 0;
+
+        if (readReply(body, sizeof(body), replyCount, kReplyTimeoutUs, &replyId) < 0 || replyCount < kFeedbackLength || replyId != ids[i]) {
+            out[i].isValid = false;
+            allValid = false;
+
+            continue;
+        }
+
+        decodeFeedback(body, out[i]);
+    }
+
+    return allValid;
+}
+
+bool St3215::setAngleLimits(uint8_t id, uint16_t minPosition, uint16_t maxPosition) {
+    lockEeprom(id, false);
+    const bool okMin = writeWord(id, Register::MinAngleLimitL, minPosition);
+    delay(10);
+    const bool okMax = writeWord(id, Register::MaxAngleLimitL, maxPosition);
+    delay(10);
+    lockEeprom(id, true);
+
+    return okMin && okMax;
+}
+
+bool St3215::setTorqueLimit(uint8_t id, uint16_t limit) {
+    return writeWord(id, Register::TorqueLimitL, limit);
+}
+
+bool St3215::setPid(uint8_t id, uint8_t kp, uint8_t kd, uint8_t ki) {
+    lockEeprom(id, false);
+    const bool okP = writeByte(id, Register::PositionKp, kp);
+    delay(10);
+    const bool okD = writeByte(id, Register::PositionKd, kd);
+    delay(10);
+    const bool okI = writeByte(id, Register::PositionKi, ki);
+    delay(10);
+    lockEeprom(id, true);
+
+    return okP && okD && okI;
+}
+
+bool St3215::setUnloadingCondition(uint8_t id, uint8_t faultMask) {
+    lockEeprom(id, false);
+    const bool ok = writeByte(id, Register::UnloadingCondition, faultMask);
+    delay(10);
+    lockEeprom(id, true);
+
+    return ok;
+}
+
+bool St3215::readStatus(uint8_t id, ServoStatus& out) {
+    const int value = readByte(id, Register::Status);
+
+    if (value < 0) {
+        out.isValid = false;
+
+        return false;
+    }
+
+    out = decodeStatus((uint8_t)value);
+
+    return true;
+}
+
+bool St3215::readInfo(uint8_t id, ServoInfo& out) {
+    const int firmwareMajor = readByte(id, Register::FirmwareMajor);
+
+    if (firmwareMajor < 0) {
+        out.isValid = false;
+
+        return false;
+    }
+
+    out.firmwareMajor = firmwareMajor;
+    out.firmwareMinor = readByte(id, Register::FirmwareMinor);
+    out.modelMajor = readByte(id, Register::ModelMajor);
+    out.modelMinor = readByte(id, Register::ModelMinor);
+    out.id = readByte(id, Register::Id);
+    out.baudIndex = readByte(id, Register::BaudRate);
+    out.minVoltageDeciV = readByte(id, Register::MinVoltageLimit);
+    out.maxVoltageDeciV = readByte(id, Register::MaxVoltageLimit);
+    out.maxTemperatureC = readByte(id, Register::MaxTemperatureLimit);
+    out.positionKp = readByte(id, Register::PositionKp);
+    out.positionKd = readByte(id, Register::PositionKd);
+    out.positionKi = readByte(id, Register::PositionKi);
+    out.isValid = true;
+
+    return true;
+}
+
+int St3215::readByte(uint8_t id, Register reg) {
+    const uint8_t params[] = {(uint8_t)reg, 1};
+    sendPacket(id, Instruction::Read, params, sizeof(params));
+
+    uint8_t reply[8];
+    uint8_t count = 0;
+
+    if (readReply(reply, sizeof(reply), count, kReplyTimeoutUs) < 0 || count < 1) {
+        return -1;
+    }
+
+    return reply[0];
+}
+
+int St3215::readWord(uint8_t id, Register reg) {
+    const uint8_t params[] = {(uint8_t)reg, 2};
+    sendPacket(id, Instruction::Read, params, sizeof(params));
+
+    uint8_t reply[8];
+    uint8_t count = 0;
+
+    if (readReply(reply, sizeof(reply), count, kReplyTimeoutUs) < 0 || count < 2) {
+        return -1;
+    }
+
+    return reply[0] | (reply[1] << 8);
+}
+
+bool St3215::writeByte(uint8_t id, Register reg, uint8_t value) {
+    const uint8_t params[] = {(uint8_t)reg, value};
+    sendPacket(id, Instruction::Write, params, sizeof(params));
+
+    uint8_t reply[4];
+    uint8_t count = 0;
+
+    return readReply(reply, sizeof(reply), count, kReplyTimeoutUs) >= 0;
+}
+
+bool St3215::writeWord(uint8_t id, Register reg, uint16_t value) {
+    const uint8_t params[] = {(uint8_t)reg, (uint8_t)(value & 0xFF), (uint8_t)((value >> 8) & 0xFF)};
+    sendPacket(id, Instruction::Write, params, sizeof(params));
+
+    uint8_t reply[4];
+    uint8_t count = 0;
+
+    return readReply(reply, sizeof(reply), count, kReplyTimeoutUs) >= 0;
+}
+
+void St3215::sendPacket(uint8_t id, Instruction instr, const uint8_t* params, uint8_t nparams) {
+    uint8_t packet[32];
+    const uint8_t length = nparams + 2;
+
+    packet[0] = 0xFF;
+    packet[1] = 0xFF;
+    packet[2] = id;
+    packet[3] = length;
+    packet[4] = (uint8_t)instr;
+
+    uint16_t checksum = id + length + (uint8_t)instr;
+
+    for (uint8_t i = 0; i < nparams; i++) {
+        packet[5 + i] = params[i];
+        checksum += params[i];
+    }
+
+    packet[5 + nparams] = (uint8_t)(~checksum);
+
+    bus_.writePacket(packet, 6 + nparams);
+}
+
+int St3215::readReply(uint8_t* params, uint8_t maxParams, uint8_t& outCount, uint32_t timeoutUs, uint8_t* outId) {
+    outCount = 0;
+
+    // Find the 0xFF 0xFF header.
+    uint8_t prev = 0x00;
+    bool synced = false;
+
+    for (int i = 0; i < kMaxHeaderScanBytes && !synced; i++) {
+        uint8_t byte = 0;
+
+        if (bus_.readBytes(&byte, 1, timeoutUs) != 1) {
+            // A clean timeout with no bytes is normal (absent servo / no reply),
+            // so it is verbose, not a warning.
+            ST_LOG_V("reply timeout (no header)");
+
+            return -1;
+        }
+
+        if (prev == 0xFF && byte == 0xFF) {
+            synced = true;
+        }
+
+        prev = byte;
+    }
+
+    if (!synced) {
+        ST_LOG_V("reply header not found");
+
+        return -1;
+    }
+
+    // Read ID and LENGTH.
+    uint8_t header[2];
+
+    if (bus_.readBytes(header, 2, timeoutUs) != 2) {
+        return -1;
+    }
+
+    const uint8_t id = header[0];
+    const uint8_t length = header[1];
+
+    if (length < 2) {
+        return -1;
+    }
+
+    // LENGTH bytes follow: error + params + checksum. Sized for the largest
+    // reply we issue (a 15-byte bulk feedback read => length 17).
+    uint8_t body[32];
+
+    if (length > sizeof(body)) {
+        return -1;
+    }
+
+    if (bus_.readBytes(body, length, timeoutUs) != length) {
+        return -1;
+    }
+
+    const uint8_t error = body[0];
+    const uint8_t nparams = length - 2;
+    const uint8_t checksum = body[length - 1];
+
+    // Verify checksum over ID + LENGTH + error + params.
+    uint16_t sum = id + length + error;
+
+    for (uint8_t i = 0; i < nparams; i++) {
+        sum += body[1 + i];
+    }
+
+    if ((uint8_t)(~sum) != checksum) {
+        ST_LOG_W("reply checksum mismatch");
+
+        return -1;
+    }
+
+    const uint8_t copyCount = (nparams < maxParams) ? nparams : maxParams;
+
+    for (uint8_t i = 0; i < copyCount; i++) {
+        params[i] = body[1 + i];
+    }
+
+    outCount = copyCount;
+    lastError_ = error;
+
+    if (outId) {
+        *outId = id;
+    }
+
+    return error;
+}
+
+void St3215::lockEeprom(uint8_t id, bool locked) {
+    writeByte(id, Register::Lock, locked ? 1 : 0);
+    delay(10);
+}
+
+void St3215::decodeFeedback(const uint8_t* body, ServoFeedback& out) {
+    // Position is unsigned 0..4095 in position mode, but sign-magnitude and
+    // multi-turn in step mode. Speed and current are 16-bit sign-magnitude;
+    // load is a 10-bit magnitude with bit 10 as the direction bit.
+    out.position = decodeSignMagnitude(body[0] | (body[1] << 8), kSignBit16);
+    out.speed = decodeSignMagnitude(body[2] | (body[3] << 8), kSignBit16);
+    out.load = decodeSignMagnitude(body[4] | (body[5] << 8), kSignBitLoad);
+    out.voltageDeciV = body[6];
+    out.temperatureC = body[7];
+    out.status = decodeStatus(body[9]);
+    out.isMoving = body[10] != 0;
+
+    // Present current is ~6.5 mA per count (nominal). 6.5 = 13/2, so this stays
+    // integer-exact without floating point.
+    out.currentMa = decodeSignMagnitude(body[13] | (body[14] << 8), kSignBit16) * 13 / 2;
+    out.isValid = true;
+}
+
+St3215::ServoStatus St3215::decodeStatus(uint8_t raw) {
+    ServoStatus status;
+    status.raw = raw;
+    status.hasVoltageFault = (raw & (uint8_t)Fault::Voltage) != 0;
+    status.hasSensorFault = (raw & (uint8_t)Fault::Sensor) != 0;
+    status.hasTemperatureFault = (raw & (uint8_t)Fault::Temperature) != 0;
+    status.hasCurrentFault = (raw & (uint8_t)Fault::Current) != 0;
+    status.hasOverloadFault = (raw & (uint8_t)Fault::Overload) != 0;
+    status.isValid = true;
+
+    return status;
+}
