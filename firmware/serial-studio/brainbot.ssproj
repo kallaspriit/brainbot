@@ -1,0 +1,669 @@
+{
+    "actions": [
+    ],
+    "changeDrivenTransforms": false,
+    "diagramCollapse": {
+        "grp:0": false
+    },
+    "groups": [
+        {
+            "datasets": [
+                {
+                    "datasetId": 0,
+                    "displayFormat": "0d",
+                    "displayTickCount": 5,
+                    "fft": false,
+                    "fftMax": 0,
+                    "fftMin": 0,
+                    "fftSamples": 1024,
+                    "fftSamplingRate": 33,
+                    "fftWindow": 5,
+                    "graph": true,
+                    "groupId": 0,
+                    "index": 1,
+                    "led": false,
+                    "ledHigh": 1,
+                    "log": false,
+                    "numericValue": 0,
+                    "plotMax": 0,
+                    "plotMin": 0,
+                    "title": "Ball Distance",
+                    "uniqueId": 0,
+                    "units": "mm",
+                    "value": "",
+                    "widget": "bar",
+                    "widgetMax": 600,
+                    "widgetMin": 0,
+                    "xAxis": -2
+                }
+            ],
+            "title": "Ball",
+            "uniqueId": 9,
+            "widget": ""
+        },
+        {
+            "datasets": [
+                {
+                    "datasetId": 0,
+                    "displayFormat": "0d",
+                    "displayTickCount": 5,
+                    "fft": false,
+                    "fftMax": 0,
+                    "fftMin": 0,
+                    "fftSamples": 1024,
+                    "fftSamplingRate": 33,
+                    "fftWindow": 5,
+                    "graph": true,
+                    "groupId": 1,
+                    "index": 2,
+                    "led": false,
+                    "ledHigh": 1,
+                    "log": false,
+                    "numericValue": 0,
+                    "plotMax": 0,
+                    "plotMin": 0,
+                    "title": "Beam Angle",
+                    "uniqueId": 1,
+                    "units": "deg",
+                    "value": "",
+                    "widget": "gauge",
+                    "widgetMax": 20,
+                    "widgetMin": -20,
+                    "xAxis": -2
+                },
+                {
+                    "datasetId": 1,
+                    "displayFormat": "0d",
+                    "displayTickCount": 5,
+                    "fft": false,
+                    "fftMax": 0,
+                    "fftMin": 0,
+                    "fftSamples": 1024,
+                    "fftSamplingRate": 33,
+                    "fftWindow": 5,
+                    "graph": true,
+                    "groupId": 1,
+                    "index": 3,
+                    "led": false,
+                    "ledHigh": 1,
+                    "log": false,
+                    "numericValue": 0,
+                    "plotMax": 0,
+                    "plotMin": 0,
+                    "title": "Target Angle",
+                    "uniqueId": 2,
+                    "units": "deg",
+                    "value": "",
+                    "widget": "",
+                    "widgetMax": 20,
+                    "widgetMin": -20,
+                    "xAxis": -2
+                }
+            ],
+            "title": "Beam",
+            "uniqueId": 10,
+            "widget": "multiplot"
+        },
+        {
+            "datasets": [
+                {
+                    "datasetId": 0,
+                    "displayFormat": "0d",
+                    "displayTickCount": 5,
+                    "fft": false,
+                    "fftMax": 0,
+                    "fftMin": 0,
+                    "fftSamples": 1024,
+                    "fftSamplingRate": 33,
+                    "fftWindow": 5,
+                    "graph": true,
+                    "groupId": 2,
+                    "index": 4,
+                    "led": false,
+                    "ledHigh": 1,
+                    "log": false,
+                    "numericValue": 0,
+                    "plotMax": 0,
+                    "plotMin": 0,
+                    "title": "Position",
+                    "uniqueId": 3,
+                    "units": "steps",
+                    "value": "",
+                    "widget": "",
+                    "widgetMax": 4095,
+                    "widgetMin": 0,
+                    "xAxis": -2
+                },
+                {
+                    "datasetId": 1,
+                    "displayFormat": "0d",
+                    "displayTickCount": 5,
+                    "fft": false,
+                    "fftMax": 0,
+                    "fftMin": 0,
+                    "fftSamples": 1024,
+                    "fftSamplingRate": 33,
+                    "fftWindow": 5,
+                    "graph": true,
+                    "groupId": 2,
+                    "index": 5,
+                    "led": false,
+                    "ledHigh": 1,
+                    "log": false,
+                    "numericValue": 0,
+                    "plotMax": 0,
+                    "plotMin": 0,
+                    "title": "Speed",
+                    "uniqueId": 4,
+                    "units": "steps/s",
+                    "value": "",
+                    "widget": "",
+                    "widgetMax": 0,
+                    "widgetMin": 0,
+                    "xAxis": -2
+                },
+                {
+                    "datasetId": 2,
+                    "displayFormat": "0d",
+                    "displayTickCount": 5,
+                    "fft": false,
+                    "fftMax": 0,
+                    "fftMin": 0,
+                    "fftSamples": 1024,
+                    "fftSamplingRate": 33,
+                    "fftWindow": 5,
+                    "graph": true,
+                    "groupId": 2,
+                    "index": 6,
+                    "led": false,
+                    "ledHigh": 1,
+                    "log": false,
+                    "numericValue": 0,
+                    "plotMax": 0,
+                    "plotMin": 0,
+                    "title": "Load",
+                    "uniqueId": 5,
+                    "units": "0.1%",
+                    "value": "",
+                    "widget": "",
+                    "widgetMax": 1000,
+                    "widgetMin": -1000,
+                    "xAxis": -2
+                },
+                {
+                    "datasetId": 3,
+                    "displayFormat": "0d",
+                    "displayTickCount": 5,
+                    "fft": false,
+                    "fftMax": 0,
+                    "fftMin": 0,
+                    "fftSamples": 1024,
+                    "fftSamplingRate": 33,
+                    "fftWindow": 5,
+                    "graph": true,
+                    "groupId": 2,
+                    "index": 7,
+                    "led": false,
+                    "ledHigh": 1,
+                    "log": false,
+                    "numericValue": 0,
+                    "plotMax": 0,
+                    "plotMin": 0,
+                    "title": "Current",
+                    "uniqueId": 6,
+                    "units": "mA",
+                    "value": "",
+                    "widget": "",
+                    "widgetMax": 3000,
+                    "widgetMin": 0,
+                    "xAxis": -2
+                },
+                {
+                    "datasetId": 4,
+                    "displayFormat": "0d",
+                    "displayTickCount": 5,
+                    "fft": false,
+                    "fftMax": 0,
+                    "fftMin": 0,
+                    "fftSamples": 1024,
+                    "fftSamplingRate": 33,
+                    "fftWindow": 5,
+                    "graph": false,
+                    "groupId": 2,
+                    "index": 8,
+                    "led": false,
+                    "ledHigh": 1,
+                    "log": false,
+                    "numericValue": 0,
+                    "plotMax": 0,
+                    "plotMin": 0,
+                    "title": "Voltage",
+                    "uniqueId": 7,
+                    "units": "V",
+                    "value": "",
+                    "widget": "bar",
+                    "widgetMax": 15,
+                    "widgetMin": 0,
+                    "xAxis": -2
+                },
+                {
+                    "datasetId": 5,
+                    "displayFormat": "0d",
+                    "displayTickCount": 5,
+                    "fft": false,
+                    "fftMax": 0,
+                    "fftMin": 0,
+                    "fftSamples": 1024,
+                    "fftSamplingRate": 33,
+                    "fftWindow": 5,
+                    "graph": false,
+                    "groupId": 2,
+                    "index": 9,
+                    "led": false,
+                    "ledHigh": 1,
+                    "log": false,
+                    "numericValue": 0,
+                    "plotMax": 0,
+                    "plotMin": 0,
+                    "title": "Temperature",
+                    "uniqueId": 8,
+                    "units": "C",
+                    "value": "",
+                    "widget": "bar",
+                    "widgetMax": 85,
+                    "widgetMin": 0,
+                    "xAxis": -2
+                }
+            ],
+            "title": "Beam Servo",
+            "uniqueId": 11,
+            "widget": "datagrid"
+        }
+    ],
+    "hexadecimalDelimiters": false,
+    "mqttPublisher": {
+        "cleanSession": true,
+        "customClientId": false,
+        "enabled": false,
+        "hostname": "127.0.0.1",
+        "keepAlive": 60,
+        "mode": 0,
+        "mqttVersion": 2,
+        "notificationTopic": "",
+        "peerVerifyDepth": 10,
+        "peerVerifyMode": 3,
+        "port": 1883,
+        "publishFrequency": 10,
+        "publishNotifications": false,
+        "scriptCode": "",
+        "scriptLanguage": 0,
+        "scriptTopic": "",
+        "sslEnabled": false,
+        "sslProtocol": 5,
+        "topicBase": ""
+    },
+    "nextUniqueId": 12,
+    "plotTimeRange": 10,
+    "pointCount": 4000,
+    "schemaVersion": 3,
+    "sources": [
+        {
+            "busType": 0,
+            "checksum": "",
+            "checksumAlgorithm": "",
+            "connection": {
+                "autoReconnect": true,
+                "baudRate": 115200,
+                "dataBitsIndex": 3,
+                "dtr": true,
+                "flowControlIndex": 0,
+                "parityIndex": 0,
+                "stopBitsIndex": 0
+            },
+            "decoder": 0,
+            "decoderMethod": 0,
+            "frameDetection": 1,
+            "frameEnd": ";",
+            "frameParserCode": "/**\n * Splits a Brainbot telemetry frame into its fields.\n *\n * The firmware sends \"$distance,beamAngle,targetAngle,position,speed,load,\n * current,voltage,temperature;\" once every 30 ms while \"debug on\" is active.\n * Everything outside the $ ... ; delimiters is console text and is ignored.\n *\n * @param[in]  frame   The frame body, without the delimiters.\n * @return     An array of strings, one per dataset index.\n */\nfunction parse(frame) {\n    return frame.split(',');\n}\n",
+            "frameStart": "$",
+            "hexadecimalDelimiters": false,
+            "sourceId": 0,
+            "title": "Brainbot"
+        }
+    ],
+    "title": "Brainbot Ball & Beam",
+    "treeExpansion": {
+        "": false,
+        "Brainbot Ball & Beam": true,
+        "Brainbot Ball & Beam/ ": false,
+        "Brainbot Ball & Beam/Brainbot": true,
+        "Brainbot Ball & Beam/Brainbot/Frame Parser": false,
+        "Brainbot Ball & Beam/Control Loop": false,
+        "Brainbot Ball & Beam/Dashboard Widgets": true,
+        "Brainbot Ball & Beam/Dashboard Widgets/Ball": true,
+        "Brainbot Ball & Beam/Dashboard Widgets/Ball/Ball Distance": false,
+        "Brainbot Ball & Beam/Dashboard Widgets/Beam": true,
+        "Brainbot Ball & Beam/Dashboard Widgets/Beam Servo": true,
+        "Brainbot Ball & Beam/Dashboard Widgets/Beam Servo/Current": false,
+        "Brainbot Ball & Beam/Dashboard Widgets/Beam Servo/Load": false,
+        "Brainbot Ball & Beam/Dashboard Widgets/Beam Servo/Position": false,
+        "Brainbot Ball & Beam/Dashboard Widgets/Beam Servo/Speed": false,
+        "Brainbot Ball & Beam/Dashboard Widgets/Beam Servo/Temperature": false,
+        "Brainbot Ball & Beam/Dashboard Widgets/Beam Servo/Voltage": false,
+        "Brainbot Ball & Beam/Dashboard Widgets/Beam/Beam Angle": false,
+        "Brainbot Ball & Beam/Dashboard Widgets/Beam/Target Angle": false,
+        "Brainbot Ball & Beam/MQTT Publisher": false,
+        "Brainbot Ball & Beam/Shared Memory": true,
+        "Brainbot Ball & Beam/Shared Memory/Dataset Values": false,
+        "Brainbot Ball & Beam/Workspaces": true,
+        "Brainbot Ball & Beam/Workspaces/All Data": false,
+        "Brainbot Ball & Beam/Workspaces/Ball": false,
+        "Brainbot Ball & Beam/Workspaces/Beam": false,
+        "Brainbot Ball & Beam/Workspaces/Beam Servo": false,
+        "Brainbot Ball & Beam/Workspaces/Overview": false
+    },
+    "widgetSettings": {
+        "10:0:1": {
+            "page": 0
+        },
+        "2:1:-1": {
+            "holdoff": 0,
+            "interpolationMode": 2,
+            "sweepEnabled": false,
+            "sweepMode": 0,
+            "sweepTimebase": 0,
+            "triggerEdge": 0,
+            "triggerLevel": 0,
+            "triggerSource": 0,
+            "userShowYLabel": true
+        },
+        "activeGroup": 1002,
+        "externalWindows": {
+            "data": [
+            ]
+        },
+        "layout:1000": {
+            "data": {
+                "autoLayout": true,
+                "canvasHeight": 1280,
+                "canvasWidth": 2562,
+                "geometries": [
+                    {
+                        "height": 1280,
+                        "id": 2,
+                        "relativeIndex": 0,
+                        "state": "normal",
+                        "widgetType": 2,
+                        "width": 1281,
+                        "x": 0,
+                        "y": 0
+                    },
+                    {
+                        "height": 1280,
+                        "id": 1,
+                        "relativeIndex": 0,
+                        "state": "normal",
+                        "widgetType": 1,
+                        "width": 1281,
+                        "x": 1280,
+                        "y": 0
+                    }
+                ],
+                "userReordered": false,
+                "windowOrder": [
+                    2,
+                    1
+                ],
+                "windowOrderTyped": [
+                    {
+                        "relativeIndex": 0,
+                        "widgetType": 2
+                    },
+                    {
+                        "relativeIndex": 0,
+                        "widgetType": 1
+                    }
+                ]
+            }
+        },
+        "layout:1002": {
+            "data": {
+                "autoLayout": true,
+                "canvasHeight": 1280,
+                "canvasWidth": 2562,
+                "geometries": [
+                    {
+                        "height": 1280,
+                        "id": 13,
+                        "relativeIndex": 0,
+                        "state": "normal",
+                        "widgetType": 10,
+                        "width": 1281,
+                        "x": 0,
+                        "y": 0
+                    },
+                    {
+                        "height": 1280,
+                        "id": 6,
+                        "relativeIndex": 0,
+                        "state": "normal",
+                        "widgetType": 9,
+                        "width": 1281,
+                        "x": 1280,
+                        "y": 0
+                    }
+                ],
+                "userReordered": false,
+                "windowOrder": [
+                    13,
+                    6
+                ],
+                "windowOrderTyped": [
+                    {
+                        "relativeIndex": 0,
+                        "widgetType": 10
+                    },
+                    {
+                        "relativeIndex": 0,
+                        "widgetType": 9
+                    }
+                ]
+            }
+        },
+        "layout:1003": {
+            "data": {
+                "autoLayout": true,
+                "canvasHeight": 1280,
+                "canvasWidth": 2562,
+                "geometries": [
+                    {
+                        "height": 640,
+                        "id": 2,
+                        "relativeIndex": 0,
+                        "state": "normal",
+                        "widgetType": 2,
+                        "width": 1281,
+                        "x": 0,
+                        "y": 0
+                    },
+                    {
+                        "height": 640,
+                        "id": 16,
+                        "relativeIndex": 0,
+                        "state": "normal",
+                        "widgetType": 11,
+                        "width": 1281,
+                        "x": 1280,
+                        "y": 0
+                    },
+                    {
+                        "height": 640,
+                        "id": 7,
+                        "relativeIndex": 1,
+                        "state": "normal",
+                        "widgetType": 9,
+                        "width": 1281,
+                        "x": 0,
+                        "y": 639
+                    },
+                    {
+                        "height": 640,
+                        "id": 8,
+                        "relativeIndex": 2,
+                        "state": "normal",
+                        "widgetType": 9,
+                        "width": 1281,
+                        "x": 1280,
+                        "y": 639
+                    }
+                ],
+                "userReordered": false,
+                "windowOrder": [
+                    2,
+                    16,
+                    7,
+                    8
+                ],
+                "windowOrderTyped": [
+                    {
+                        "relativeIndex": 0,
+                        "widgetType": 2
+                    },
+                    {
+                        "relativeIndex": 0,
+                        "widgetType": 11
+                    },
+                    {
+                        "relativeIndex": 1,
+                        "widgetType": 9
+                    },
+                    {
+                        "relativeIndex": 2,
+                        "widgetType": 9
+                    }
+                ]
+            }
+        },
+        "layout:1004": {
+            "data": {
+                "autoLayout": true,
+                "canvasHeight": 1280,
+                "canvasWidth": 2562,
+                "geometries": [
+                    {
+                        "height": 640,
+                        "id": 1,
+                        "relativeIndex": 0,
+                        "state": "normal",
+                        "widgetType": 1,
+                        "width": 641,
+                        "x": 0,
+                        "y": 0
+                    },
+                    {
+                        "height": 640,
+                        "id": 9,
+                        "relativeIndex": 3,
+                        "state": "normal",
+                        "widgetType": 9,
+                        "width": 641,
+                        "x": 640,
+                        "y": 0
+                    },
+                    {
+                        "height": 640,
+                        "id": 10,
+                        "relativeIndex": 4,
+                        "state": "normal",
+                        "widgetType": 9,
+                        "width": 640,
+                        "x": 1280,
+                        "y": 0
+                    },
+                    {
+                        "height": 640,
+                        "id": 11,
+                        "relativeIndex": 5,
+                        "state": "normal",
+                        "widgetType": 9,
+                        "width": 640,
+                        "x": 1919,
+                        "y": 0
+                    },
+                    {
+                        "height": 640,
+                        "id": 12,
+                        "relativeIndex": 6,
+                        "state": "normal",
+                        "widgetType": 9,
+                        "width": 854,
+                        "x": 0,
+                        "y": 639
+                    },
+                    {
+                        "height": 640,
+                        "id": 14,
+                        "relativeIndex": 1,
+                        "state": "normal",
+                        "widgetType": 10,
+                        "width": 854,
+                        "x": 853,
+                        "y": 639
+                    },
+                    {
+                        "height": 640,
+                        "id": 15,
+                        "relativeIndex": 2,
+                        "state": "normal",
+                        "widgetType": 10,
+                        "width": 854,
+                        "x": 1706,
+                        "y": 639
+                    }
+                ],
+                "userReordered": false,
+                "windowOrder": [
+                    1,
+                    9,
+                    10,
+                    11,
+                    12,
+                    14,
+                    15
+                ],
+                "windowOrderTyped": [
+                    {
+                        "relativeIndex": 0,
+                        "widgetType": 1
+                    },
+                    {
+                        "relativeIndex": 3,
+                        "widgetType": 9
+                    },
+                    {
+                        "relativeIndex": 4,
+                        "widgetType": 9
+                    },
+                    {
+                        "relativeIndex": 5,
+                        "widgetType": 9
+                    },
+                    {
+                        "relativeIndex": 6,
+                        "widgetType": 9
+                    },
+                    {
+                        "relativeIndex": 1,
+                        "widgetType": 10
+                    },
+                    {
+                        "relativeIndex": 2,
+                        "widgetType": 10
+                    }
+                ]
+            }
+        }
+    },
+    "writerVersion": "4.0.3",
+    "writerVersionAtCreation": "4.0.3"
+}

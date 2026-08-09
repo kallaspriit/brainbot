@@ -1,6 +1,5 @@
 #include <Adafruit_VL53L0X.h>
 #include <Arduino.h>
-
 #include <cstring>
 
 #include "SerialConsole.hpp"
@@ -27,7 +26,18 @@ static constexpr uint8_t kTiltServoId = 3;
 static constexpr float kTiltAngleDegrees = 4.0f;
 
 // How long the "tilt" test holds each side before swinging back.
-static constexpr unsigned long kTiltIntervalMs = 1000;
+static constexpr unsigned long kTiltIntervalMs = 3000;
+
+// Debug frame period; also the sample rate Serial Studio plots against (~33 Hz).
+static constexpr unsigned long kDebugIntervalMs = 30;
+
+// The distance sensor is polled at this rate in continuous ranging mode.
+static constexpr uint32_t kRangingPeriodMs = 30;
+
+// Longest distance the ball can actually be at. The VL53L0X reports failed
+// measurements as large values (8190 out of range, 65535 on error) rather than
+// as an error, so anything past the end of the beam is a bad reading.
+static constexpr uint16_t kMaxDistanceMm = 600;
 
 static SwUartPioBus bus(kServoPin, kServoBaud);
 static St3215 servo(bus);
@@ -40,13 +50,60 @@ bool hasDistanceSensor = false;
 static uint8_t discoveredIds[kMaxScanId];
 static uint8_t discoveredCount = 0;
 
-// Print each new distance measurement; toggled by the "debug" command.
+// Stream Serial Studio telemetry frames; toggled by the "debug" command.
 static bool isDebugEnabled = false;
+static unsigned long lastDebugTimeMs = 0;
+
+// Latest distance measurement, refreshed whenever the sensor has a new range.
+static uint16_t lastDistanceMm = 0;
+
+// Latest servo feedback; kept from the previous frame when a read fails, so a
+// dropped reply does not punch a spike into the plots.
+static St3215::ServoFeedback lastFeedback;
+
+// Position last commanded to the beam servo, plotted against the measured one.
+static int16_t targetPosition = St3215::kPositionMid;
 
 // Rock the beam between two positions; toggled by the "tilt" command.
 static bool isTiltEnabled = false;
 static unsigned long lastTiltTimeMs = 0;
 static bool isTiltHigh = true;
+
+/**
+ * Converts a beam angle to a servo position, with 0 degrees at the mid-point
+ * (2048) and the full 0..4095 span covering one revolution.
+ */
+static int16_t angleToPosition(float angleDegrees) {
+    const float position = (angleDegrees / 360.0f) * 4095.0f + 2048.0f;
+
+    return static_cast<int16_t>(position);
+}
+
+/** Converts a servo position back to a beam angle in degrees. */
+static float positionToAngle(int position) {
+    return ((float)position - 2048.0f) / 4095.0f * 360.0f;
+}
+
+/**
+ * Emits one telemetry frame for Serial Studio, in the delimited CSV format its
+ * default parser expects: a "$" start delimiter, comma-separated values in the
+ * order the project file's dataset indexes reference, and a ";" end delimiter.
+ * Console text outside those delimiters is ignored by the frame reader, so the
+ * interactive commands keep working while frames stream.
+ *
+ * Fields: distance, beam angle, target angle, position, speed, load, current,
+ * voltage, temperature. See serial-studio/brainbot.ssproj.
+ */
+static void printDebugFrame() {
+    St3215::ServoFeedback feedback;
+
+    if (servo.readFeedback(kTiltServoId, feedback)) {
+        lastFeedback = feedback;
+    }
+
+    Serial << "$" << lastDistanceMm << "," << positionToAngle(lastFeedback.position) << "," << positionToAngle(targetPosition) << "," << lastFeedback.position << "," << lastFeedback.speed << ","
+           << lastFeedback.load << "," << lastFeedback.currentMa << "," << (lastFeedback.voltageDeciV / 10.0f) << "," << lastFeedback.temperatureC << ";" << endl;
+}
 
 /** Prints a deci-volt value (tenths of a volt) as "X.Y V". */
 static void printVolts(int deciVolts) {
@@ -233,6 +290,11 @@ static void registerCommands() {
         }
 
         servo.writePos((uint8_t)id, (int16_t)pos, (uint16_t)speed, (uint8_t)acc);
+
+        if (id == kTiltServoId) {
+            targetPosition = (int16_t)pos;
+        }
+
         Serial << "move " << id << " -> " << pos << endl;
     });
 
@@ -456,20 +518,18 @@ static void registerCommands() {
         Serial << "torque " << id << " = " << (on != 0) << endl;
     });
 
-    console.addCommand("debug", "debug <on|off>             - print ball distance measurements", [](SerialConsole& c) {
+    console.addCommand("debug", "debug <on|off>             - stream telemetry frames for Serial Studio", [](SerialConsole& c) {
         if (!parseOnOff(c, isDebugEnabled)) {
             Serial << "usage: debug <on|off>  (currently " << (isDebugEnabled ? "on" : "off") << ")" << endl;
 
             return;
         }
 
-        if (isDebugEnabled && !hasDistanceSensor) {
-            Serial << "debug on, but no distance sensor was detected" << endl;
-
-            return;
-        }
-
         Serial << "debug " << (isDebugEnabled ? "on" : "off") << endl;
+
+        if (isDebugEnabled && !hasDistanceSensor) {
+            Serial << "note: no distance sensor detected, distance stays 0" << endl;
+        }
     });
 
     console.addCommand("tilt", "tilt <on|off>              - rock the beam between two positions", [](SerialConsole& c) {
@@ -488,15 +548,6 @@ static void registerCommands() {
 
         Serial << "tilt " << (isTiltEnabled ? "on" : "off") << endl;
     });
-}
-
-int16_t angleToPosition(float angleDegrees) {
-    // Convert angle in degrees to position value (0-4095)
-    // Assuming 0 degrees corresponds to position 2048 (midpoint)
-    // and 360 degrees corresponds to position 4095
-    float position = (angleDegrees / 360.0f) * 4095.0f + 2048.0f;
-
-    return static_cast<int16_t>(position);
 }
 
 void setup() {
@@ -521,6 +572,8 @@ void setup() {
     registerCommands();
     scanBus();
     console.printHelp();
+
+    lastFeedback.position = St3215::kPositionMid;
 
     // Set all servos to position mode and stop them
     servo.setMode(St3215::kBroadcastId, St3215::Mode::Position);
@@ -550,7 +603,7 @@ void setup() {
         Serial << "VL53L0X distance sensor initialized successfully" << endl;
 
         // Start continuous distance measurements
-        distanceSensor.startRangeContinuous(30);
+        distanceSensor.startRangeContinuous(kRangingPeriodMs);
     } else {
         Serial << "Failed to initialize VL53L0X distance sensor" << endl;
     }
@@ -563,22 +616,29 @@ void loop() {
 
     // Tilt the beam back and forth between +-kTiltAngleDegrees
     if (isTiltEnabled && currentTimeMs - lastTiltTimeMs >= kTiltIntervalMs) {
-        const int16_t position = angleToPosition(isTiltHigh ? kTiltAngleDegrees : -kTiltAngleDegrees);
+        targetPosition = angleToPosition(isTiltHigh ? kTiltAngleDegrees : -kTiltAngleDegrees);
         isTiltHigh = !isTiltHigh;
 
-        servo.writePos(kTiltServoId, position);
+        servo.writePos(kTiltServoId, targetPosition);
 
         lastTiltTimeMs = currentTimeMs;
     }
 
-    // Read distance sensor and print the result if a new measurement is available
-    if (isDebugEnabled && hasDistanceSensor && distanceSensor.isRangeComplete()) {
+    // Drain the sensor as measurements complete, keeping the latest valid range.
+    // Out-of-range readings are dropped rather than reported, so the last known
+    // ball position is held instead of spiking the plots.
+    if (hasDistanceSensor && distanceSensor.isRangeComplete()) {
         const uint16_t distanceMm = distanceSensor.readRangeResult();
 
-        if (distanceSensor.timeoutOccurred()) {
-            Serial << "Distance sensor timeout!" << endl;
-        } else {
-            Serial << "Distance: " << distanceMm << " mm" << endl;
+        if (!distanceSensor.timeoutOccurred() && distanceMm <= kMaxDistanceMm) {
+            lastDistanceMm = distanceMm;
         }
+    }
+
+    // Stream telemetry at a steady rate so plots have an even time axis
+    if (isDebugEnabled && currentTimeMs - lastDebugTimeMs >= kDebugIntervalMs) {
+        lastDebugTimeMs = currentTimeMs;
+
+        printDebugFrame();
     }
 }
