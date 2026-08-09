@@ -1,4 +1,7 @@
+#include <Adafruit_VL53L0X.h>
 #include <Arduino.h>
+
+#include <cstring>
 
 #include "SerialConsole.hpp"
 #include "St3215.hpp"
@@ -17,13 +20,33 @@ static constexpr uint8_t kMaxScanId = 20;
 // Most servos a single "sync"/"syncread" command can address.
 static constexpr size_t kMaxSyncServos = 8;
 
+// Servo rocked back and forth by the "tilt" test.
+static constexpr uint8_t kTiltServoId = 3;
+
+// How far the "tilt" test swings either side of centre, in degrees.
+static constexpr float kTiltAngleDegrees = 4.0f;
+
+// How long the "tilt" test holds each side before swinging back.
+static constexpr unsigned long kTiltIntervalMs = 1000;
+
 static SwUartPioBus bus(kServoPin, kServoBaud);
 static St3215 servo(bus);
 static SerialConsole console(Serial);
 
+Adafruit_VL53L0X distanceSensor;
+bool hasDistanceSensor = false;
+
 // Servos discovered by the last scan; used by "stop" so no motor is missed.
 static uint8_t discoveredIds[kMaxScanId];
 static uint8_t discoveredCount = 0;
+
+// Print each new distance measurement; toggled by the "debug" command.
+static bool isDebugEnabled = false;
+
+// Rock the beam between two positions; toggled by the "tilt" command.
+static bool isTiltEnabled = false;
+static unsigned long lastTiltTimeMs = 0;
+static bool isTiltHigh = true;
 
 /** Prints a deci-volt value (tenths of a volt) as "X.Y V". */
 static void printVolts(int deciVolts) {
@@ -125,6 +148,35 @@ static void scanBus() {
     }
 
     Serial << discoveredCount << " servo(s) found" << endl;
+}
+
+/**
+ * Parses an "on"/"off" (or "1"/"0") argument into a flag.
+ *
+ * @param c      Console to pull the token from.
+ * @param target Flag written when the token is recognised.
+ * @returns True when a valid token was given, false otherwise.
+ */
+static bool parseOnOff(SerialConsole& c, bool& target) {
+    const char* token = c.nextToken();
+
+    if (token == nullptr) {
+        return false;
+    }
+
+    if (strcmp(token, "on") == 0 || strcmp(token, "1") == 0) {
+        target = true;
+
+        return true;
+    }
+
+    if (strcmp(token, "off") == 0 || strcmp(token, "0") == 0) {
+        target = false;
+
+        return true;
+    }
+
+    return false;
 }
 
 /** Registers all servo console commands. */
@@ -403,6 +455,39 @@ static void registerCommands() {
         servo.setTorque((uint8_t)id, on != 0);
         Serial << "torque " << id << " = " << (on != 0) << endl;
     });
+
+    console.addCommand("debug", "debug <on|off>             - print ball distance measurements", [](SerialConsole& c) {
+        if (!parseOnOff(c, isDebugEnabled)) {
+            Serial << "usage: debug <on|off>  (currently " << (isDebugEnabled ? "on" : "off") << ")" << endl;
+
+            return;
+        }
+
+        if (isDebugEnabled && !hasDistanceSensor) {
+            Serial << "debug on, but no distance sensor was detected" << endl;
+
+            return;
+        }
+
+        Serial << "debug " << (isDebugEnabled ? "on" : "off") << endl;
+    });
+
+    console.addCommand("tilt", "tilt <on|off>              - rock the beam between two positions", [](SerialConsole& c) {
+        if (!parseOnOff(c, isTiltEnabled)) {
+            Serial << "usage: tilt <on|off>  (currently " << (isTiltEnabled ? "on" : "off") << ")" << endl;
+
+            return;
+        }
+
+        if (isTiltEnabled) {
+            // Swing on the next loop pass instead of waiting out the interval.
+            lastTiltTimeMs = millis() - kTiltIntervalMs;
+        } else {
+            servo.stop(kTiltServoId);
+        }
+
+        Serial << "tilt " << (isTiltEnabled ? "on" : "off") << endl;
+    });
 }
 
 int16_t angleToPosition(float angleDegrees) {
@@ -446,35 +531,54 @@ void setup() {
     // servo.writeSpeed(2, 1000);
     // servo.writeSpeed(3, 1500);
     // servo.writeSpeed(4, 2000);
+
+    // Setup distance sensor
+    // Increase default I2C bus speed for faster distance measurements
+    // Wire1.setClock(400000);
+
+    // Try to initialize the distance sensor with high-speed mode
+    Serial << "Setting up distance sensor" << endl;
+
+    Wire1.setSDA(14);
+    Wire1.setSCL(15);
+    // Wire1.setClock(400000);
+    // Wire1.begin();
+
+    if (distanceSensor.begin(VL53L0X_I2C_ADDR, false, &Wire1, Adafruit_VL53L0X::VL53L0X_SENSE_DEFAULT)) {
+        hasDistanceSensor = true;
+
+        Serial << "VL53L0X distance sensor initialized successfully" << endl;
+
+        // Start continuous distance measurements
+        distanceSensor.startRangeContinuous(30);
+    } else {
+        Serial << "Failed to initialize VL53L0X distance sensor" << endl;
+    }
 }
 
 void loop() {
     console.loop();
 
-    // Move #3 servo alternating between 1998 and 2098 every second
-    static unsigned long lastMoveTimeMs = 0;
-    static bool moveToHigh = true;
-    float angleRange = 5.0f; // degrees
-    unsigned long currentTimeMs = millis();
+    const unsigned long currentTimeMs = millis();
 
-    if (currentTimeMs - lastMoveTimeMs >= 1000) {
-        const int16_t position = angleToPosition(moveToHigh ? angleRange : -angleRange);
-        moveToHigh = !moveToHigh;
+    // Tilt the beam back and forth between +-kTiltAngleDegrees
+    if (isTiltEnabled && currentTimeMs - lastTiltTimeMs >= kTiltIntervalMs) {
+        const int16_t position = angleToPosition(isTiltHigh ? kTiltAngleDegrees : -kTiltAngleDegrees);
+        isTiltHigh = !isTiltHigh;
 
-        servo.writePos(3, position);
+        servo.writePos(kTiltServoId, position);
 
-        lastMoveTimeMs = currentTimeMs;
+        lastTiltTimeMs = currentTimeMs;
     }
 
-    // static unsigned long lastDebugTimeMs = 0;
-    // unsigned long currentTimeMs = millis();
+    // Read distance sensor and print the result if a new measurement is available
+    if (isDebugEnabled && hasDistanceSensor && distanceSensor.isRangeComplete()) {
+        const uint16_t distanceMm = distanceSensor.readRangeResult();
 
-    // if (currentTimeMs - lastDebugTimeMs >= 1000) {
-    //     lastDebugTimeMs = currentTimeMs;
-
-    //     // Print feedback for all discovered servos
-    //     for (uint8_t i = 0; i < discoveredCount; i++) {
-    //         printFeedback(discoveredIds[i]);
-    //     }
-    // }
+        if (distanceSensor.timeoutOccurred()) {
+            Serial << "Distance sensor timeout!" << endl;
+        } else {
+            Serial << "Distance: " << distanceMm << " mm" << endl;
+        }
+    }
 }
