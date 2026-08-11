@@ -63,6 +63,12 @@ int SerialConsole::nextInt(int def) {
     return token ? (int)strtol(token, nullptr, 0) : def;
 }
 
+float SerialConsole::nextFloat(float def) {
+    const char* token = strtok(nullptr, " ");
+
+    return token ? strtof(token, nullptr) : def;
+}
+
 const char* SerialConsole::nextToken(const char* def) {
     const char* token = strtok(nullptr, " ");
 

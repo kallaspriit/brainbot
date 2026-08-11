@@ -13,9 +13,25 @@ telemetry the firmware emits while `debug on` is active.
 4. Type `debug on` in Serial Studio's console — the dashboard starts updating. `tilt on`
    drives the beam back and forth so there is something to watch.
 
+The beam boots relaxed and takes torque only when something asks it to move, so
+`angle 0` or any test command is what wakes it up.
+
+## Characterization commands
+
+| Command | What it is for |
+| ------- | -------------- |
+| `debugrate <hz>` | Frame rate. Raise to 100 Hz or more before a step test, or the transient is aliased — the servo settles a small step within a sample or two at the default 33 Hz. |
+| `steptest <deg> [holdMs]` | Square wave. Run it small (0.2–1 deg) as well as large: a regulator lives in the small-signal regime, and the deadband and backlash only show up there. |
+| `sinetest <deg> <hz>` | Sine sweep. Gain and phase across the intended crossover (~0.3 Hz) are what actually set the closed loop's stability margin — in closed loop the servo never sees a step, only a setpoint moving every tick. |
+| `angle <deg>` | Command the beam directly; stops any running test. |
+| `trim <deg>` | Servo angle at which the beam is actually level. |
+| `deadband <id> <cw> <ccw>` | Position deadband in encoder steps. The factory default of 1 costs ~0.09 deg of standing error; 0 holds the exact count but can hunt at high Kp. |
+| `state` | Ball position and velocity, beam angle, sensor and controller status. |
+
 ## Frame format
 
-The firmware prints one frame every 30 ms (~33 Hz):
+The firmware prints one frame every 30 ms (~33 Hz) by default, adjustable with
+`debugrate`:
 
 ```
 $<distance>,<beamAngle>,<targetAngle>,<position>,<speed>,<load>,<current>,<voltage>,<temperature>;
@@ -38,8 +54,11 @@ interactive console keeps working while frames stream.
 | 8     | Voltage       | V       | Bus voltage                                   |
 | 9     | Temperature   | C       | Servo case temperature                        |
 
-Fields 2-9 come from a single bulk read of the beam servo (`kTiltServoId`). If that read
-fails, the previous values are repeated rather than emitting zeros.
+Fields 2-9 come from a single bulk read of the beam servo (`Config::kBeamServoId`),
+refreshed once per control tick (100 Hz) on core 1. If that read fails, the previous
+values are repeated rather than emitting zeros. Raising `debugrate` above 100 Hz
+therefore repeats servo fields between ticks; the distance field repeats above ~33 Hz
+for the same reason, since that is as fast as the VL53L0X produces readings.
 
 The same holds for the distance: the VL53L0X signals a failed measurement with a large
 value (8190 out of range, 65535 on error) instead of an error, so readings above

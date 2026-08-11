@@ -351,6 +351,21 @@ class St3215 {
     bool setPid(uint8_t id, uint8_t kp, uint8_t kd, uint8_t ki);
 
     /**
+     * Sets the position-loop deadband (persisted to EEPROM): position errors
+     * within this many encoder steps are treated as "arrived" and produce no
+     * drive. The factory default of 1 step (~0.09 deg on a 12-bit encoder) hides
+     * that last count from the servo's own integrator, so it parks a step short
+     * of target. Zero holds the exact count, at the risk of hunting when the
+     * proportional gain is high.
+     *
+     * @param id       Servo ID.
+     * @param cwSteps  Clockwise deadband in encoder steps.
+     * @param ccwSteps Counter-clockwise deadband in encoder steps.
+     * @returns true on success.
+     */
+    bool setDeadband(uint8_t id, uint8_t cwSteps, uint8_t ccwSteps);
+
+    /**
      * Sets which fault flags cause the servo to release torque (persisted to
      * EEPROM). The bit mask uses the same layout as ServoStatus: 0x01 voltage,
      * 0x02 sensor, 0x04 temperature, 0x08 current, 0x20 overload.

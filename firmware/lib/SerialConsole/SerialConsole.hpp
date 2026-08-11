@@ -46,6 +46,15 @@ class SerialConsole {
     int nextInt(int def = 0);
 
     /**
+     * Returns the next argument token parsed as a float, for the sub-degree
+     * angles the beam is commanded in.
+     *
+     * @param def Value to return when no token remains.
+     * @returns The parsed value, or def.
+     */
+    float nextFloat(float def = 0.0f);
+
+    /**
      * Returns the next raw argument token.
      *
      * @param def Value to return when no token remains.

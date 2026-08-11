@@ -305,6 +305,17 @@ bool St3215::setTorqueLimit(uint8_t id, uint16_t limit) {
     return writeWord(id, Register::TorqueLimitL, limit);
 }
 
+bool St3215::setDeadband(uint8_t id, uint8_t cwSteps, uint8_t ccwSteps) {
+    lockEeprom(id, false);
+    const bool okCw = writeByte(id, Register::CwDeadband, cwSteps);
+    delay(10);
+    const bool okCcw = writeByte(id, Register::CcwDeadband, ccwSteps);
+    delay(10);
+    lockEeprom(id, true);
+
+    return okCw && okCcw;
+}
+
 bool St3215::setPid(uint8_t id, uint8_t kp, uint8_t kd, uint8_t ki) {
     lockEeprom(id, false);
     const bool okP = writeByte(id, Register::PositionKp, kp);

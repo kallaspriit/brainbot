@@ -45,7 +45,7 @@
             "datasets": [
                 {
                     "datasetId": 0,
-                    "displayFormat": "0d",
+                    "displayFormat": "1d",
                     "displayTickCount": 5,
                     "fft": false,
                     "fftMax": 0,
@@ -67,8 +67,8 @@
                     "units": "deg",
                     "value": "",
                     "widget": "gauge",
-                    "widgetMax": 20,
-                    "widgetMin": -20,
+                    "widgetMax": 5,
+                    "widgetMin": -5,
                     "xAxis": -2
                 },
                 {
@@ -278,6 +278,40 @@
             "title": "Beam Servo",
             "uniqueId": 11,
             "widget": "datagrid"
+        },
+        {
+            "datasets": [
+            ],
+            "groupType": 1,
+            "outputWidgets": [
+                {
+                    "icon": "",
+                    "initialValue": 0,
+                    "outputMax": 100,
+                    "outputMin": 0,
+                    "outputStep": 1,
+                    "outputTxEncoding": 0,
+                    "outputType": 0,
+                    "sourceId": 0,
+                    "title": "Tilt left",
+                    "transmitFunction": "/**\n * Default transmit function for output widgets.\n *\n * @param value - Button: 1, Slider/Knob: number, Toggle: 0|1, TextField: string\n * @return String or byte array to send over the active connection.\n */\nfunction transmit(value) {\n  return \"move 3 2000\\r\\n\";\n}\n"
+                },
+                {
+                    "icon": "",
+                    "initialValue": 0,
+                    "outputMax": 100,
+                    "outputMin": 0,
+                    "outputStep": 1,
+                    "outputTxEncoding": 0,
+                    "outputType": 0,
+                    "sourceId": 0,
+                    "title": "Tilt right",
+                    "transmitFunction": "/**\n * Default transmit function for output widgets.\n *\n * @param value - Button: 1, Slider/Knob: number, Toggle: 0|1, TextField: string\n * @return String or byte array to send over the active connection.\n */\nfunction transmit(value) {\n  return \"move 3 2100\\r\\n\";\n}\n"
+                }
+            ],
+            "title": "Output Controls",
+            "uniqueId": 12,
+            "widget": ""
         }
     ],
     "hexadecimalDelimiters": false,
@@ -302,7 +336,7 @@
         "sslProtocol": 5,
         "topicBase": ""
     },
-    "nextUniqueId": 12,
+    "nextUniqueId": 13,
     "plotTimeRange": 10,
     "pointCount": 4000,
     "schemaVersion": 3,
@@ -352,6 +386,9 @@
         "Brainbot Ball & Beam/Dashboard Widgets/Beam Servo/Voltage": false,
         "Brainbot Ball & Beam/Dashboard Widgets/Beam/Beam Angle": false,
         "Brainbot Ball & Beam/Dashboard Widgets/Beam/Target Angle": false,
+        "Brainbot Ball & Beam/Dashboard Widgets/Output Controls": true,
+        "Brainbot Ball & Beam/Dashboard Widgets/Output Controls/Tilt left": false,
+        "Brainbot Ball & Beam/Dashboard Widgets/Output Controls/Tilt right": false,
         "Brainbot Ball & Beam/MQTT Publisher": false,
         "Brainbot Ball & Beam/Shared Memory": true,
         "Brainbot Ball & Beam/Shared Memory/Dataset Values": false,
@@ -360,10 +397,14 @@
         "Brainbot Ball & Beam/Workspaces/Ball": false,
         "Brainbot Ball & Beam/Workspaces/Beam": false,
         "Brainbot Ball & Beam/Workspaces/Beam Servo": false,
+        "Brainbot Ball & Beam/Workspaces/Output Controls": false,
         "Brainbot Ball & Beam/Workspaces/Overview": false
     },
     "widgetSettings": {
         "10:0:1": {
+            "page": 0
+        },
+        "11:1:2": {
             "page": 0
         },
         "2:1:-1": {
@@ -375,9 +416,10 @@
             "triggerEdge": 0,
             "triggerLevel": 0,
             "triggerSource": 0,
+            "userShowXLabel": true,
             "userShowYLabel": true
         },
-        "activeGroup": 1002,
+        "activeGroup": 1003,
         "externalWindows": {
             "data": [
             ]
@@ -422,6 +464,215 @@
                     {
                         "relativeIndex": 0,
                         "widgetType": 1
+                    }
+                ]
+            }
+        },
+        "layout:1001": {
+            "data": {
+                "autoLayout": true,
+                "canvasHeight": 1280,
+                "canvasWidth": 2562,
+                "geometries": [
+                    {
+                        "height": 427,
+                        "id": 13,
+                        "relativeIndex": 0,
+                        "state": "normal",
+                        "widgetType": 10,
+                        "width": 427,
+                        "x": 0,
+                        "y": 0
+                    },
+                    {
+                        "height": 427,
+                        "id": 6,
+                        "relativeIndex": 0,
+                        "state": "normal",
+                        "widgetType": 9,
+                        "width": 427,
+                        "x": 426,
+                        "y": 0
+                    },
+                    {
+                        "height": 427,
+                        "id": 2,
+                        "relativeIndex": 0,
+                        "state": "normal",
+                        "widgetType": 2,
+                        "width": 427,
+                        "x": 852,
+                        "y": 0
+                    },
+                    {
+                        "height": 427,
+                        "id": 16,
+                        "relativeIndex": 0,
+                        "state": "normal",
+                        "widgetType": 11,
+                        "width": 427,
+                        "x": 1278,
+                        "y": 0
+                    },
+                    {
+                        "height": 427,
+                        "id": 7,
+                        "relativeIndex": 1,
+                        "state": "normal",
+                        "widgetType": 9,
+                        "width": 427,
+                        "x": 1704,
+                        "y": 0
+                    },
+                    {
+                        "height": 427,
+                        "id": 8,
+                        "relativeIndex": 2,
+                        "state": "normal",
+                        "widgetType": 9,
+                        "width": 427,
+                        "x": 2130,
+                        "y": 0
+                    },
+                    {
+                        "height": 427,
+                        "id": 1,
+                        "relativeIndex": 0,
+                        "state": "normal",
+                        "widgetType": 1,
+                        "width": 427,
+                        "x": 0,
+                        "y": 426
+                    },
+                    {
+                        "height": 427,
+                        "id": 9,
+                        "relativeIndex": 3,
+                        "state": "normal",
+                        "widgetType": 9,
+                        "width": 427,
+                        "x": 426,
+                        "y": 426
+                    },
+                    {
+                        "height": 427,
+                        "id": 10,
+                        "relativeIndex": 4,
+                        "state": "normal",
+                        "widgetType": 9,
+                        "width": 427,
+                        "x": 852,
+                        "y": 426
+                    },
+                    {
+                        "height": 427,
+                        "id": 11,
+                        "relativeIndex": 5,
+                        "state": "normal",
+                        "widgetType": 9,
+                        "width": 427,
+                        "x": 1278,
+                        "y": 426
+                    },
+                    {
+                        "height": 427,
+                        "id": 12,
+                        "relativeIndex": 6,
+                        "state": "normal",
+                        "widgetType": 9,
+                        "width": 427,
+                        "x": 1704,
+                        "y": 426
+                    },
+                    {
+                        "height": 427,
+                        "id": 14,
+                        "relativeIndex": 1,
+                        "state": "normal",
+                        "widgetType": 10,
+                        "width": 427,
+                        "x": 2130,
+                        "y": 426
+                    },
+                    {
+                        "height": 426,
+                        "id": 15,
+                        "relativeIndex": 2,
+                        "state": "normal",
+                        "widgetType": 10,
+                        "width": 2562,
+                        "x": 0,
+                        "y": 852
+                    }
+                ],
+                "userReordered": false,
+                "windowOrder": [
+                    13,
+                    6,
+                    2,
+                    16,
+                    7,
+                    8,
+                    1,
+                    9,
+                    10,
+                    11,
+                    12,
+                    14,
+                    15
+                ],
+                "windowOrderTyped": [
+                    {
+                        "relativeIndex": 0,
+                        "widgetType": 10
+                    },
+                    {
+                        "relativeIndex": 0,
+                        "widgetType": 9
+                    },
+                    {
+                        "relativeIndex": 0,
+                        "widgetType": 2
+                    },
+                    {
+                        "relativeIndex": 0,
+                        "widgetType": 11
+                    },
+                    {
+                        "relativeIndex": 1,
+                        "widgetType": 9
+                    },
+                    {
+                        "relativeIndex": 2,
+                        "widgetType": 9
+                    },
+                    {
+                        "relativeIndex": 0,
+                        "widgetType": 1
+                    },
+                    {
+                        "relativeIndex": 3,
+                        "widgetType": 9
+                    },
+                    {
+                        "relativeIndex": 4,
+                        "widgetType": 9
+                    },
+                    {
+                        "relativeIndex": 5,
+                        "widgetType": 9
+                    },
+                    {
+                        "relativeIndex": 6,
+                        "widgetType": 9
+                    },
+                    {
+                        "relativeIndex": 1,
+                        "widgetType": 10
+                    },
+                    {
+                        "relativeIndex": 2,
+                        "widgetType": 10
                     }
                 ]
             }
@@ -473,11 +724,11 @@
         "layout:1003": {
             "data": {
                 "autoLayout": true,
-                "canvasHeight": 1280,
+                "canvasHeight": 1232,
                 "canvasWidth": 2562,
                 "geometries": [
                     {
-                        "height": 640,
+                        "height": 616,
                         "id": 2,
                         "relativeIndex": 0,
                         "state": "normal",
@@ -487,8 +738,8 @@
                         "y": 0
                     },
                     {
-                        "height": 640,
-                        "id": 16,
+                        "height": 616,
+                        "id": 17,
                         "relativeIndex": 0,
                         "state": "normal",
                         "widgetType": 11,
@@ -497,32 +748,32 @@
                         "y": 0
                     },
                     {
-                        "height": 640,
-                        "id": 7,
+                        "height": 616,
+                        "id": 8,
                         "relativeIndex": 1,
                         "state": "normal",
                         "widgetType": 9,
                         "width": 1281,
                         "x": 0,
-                        "y": 639
+                        "y": 615
                     },
                     {
-                        "height": 640,
-                        "id": 8,
+                        "height": 616,
+                        "id": 9,
                         "relativeIndex": 2,
                         "state": "normal",
                         "widgetType": 9,
                         "width": 1281,
                         "x": 1280,
-                        "y": 639
+                        "y": 615
                     }
                 ],
                 "userReordered": false,
                 "windowOrder": [
                     2,
-                    16,
-                    7,
-                    8
+                    17,
+                    8,
+                    9
                 ],
                 "windowOrderTyped": [
                     {
@@ -547,11 +798,11 @@
         "layout:1004": {
             "data": {
                 "autoLayout": true,
-                "canvasHeight": 1280,
+                "canvasHeight": 1232,
                 "canvasWidth": 2562,
                 "geometries": [
                     {
-                        "height": 640,
+                        "height": 616,
                         "id": 1,
                         "relativeIndex": 0,
                         "state": "normal",
@@ -561,8 +812,8 @@
                         "y": 0
                     },
                     {
-                        "height": 640,
-                        "id": 9,
+                        "height": 616,
+                        "id": 10,
                         "relativeIndex": 3,
                         "state": "normal",
                         "widgetType": 9,
@@ -571,8 +822,8 @@
                         "y": 0
                     },
                     {
-                        "height": 640,
-                        "id": 10,
+                        "height": 616,
+                        "id": 11,
                         "relativeIndex": 4,
                         "state": "normal",
                         "widgetType": 9,
@@ -581,8 +832,8 @@
                         "y": 0
                     },
                     {
-                        "height": 640,
-                        "id": 11,
+                        "height": 616,
+                        "id": 12,
                         "relativeIndex": 5,
                         "state": "normal",
                         "widgetType": 9,
@@ -591,45 +842,45 @@
                         "y": 0
                     },
                     {
-                        "height": 640,
-                        "id": 12,
+                        "height": 616,
+                        "id": 13,
                         "relativeIndex": 6,
                         "state": "normal",
                         "widgetType": 9,
                         "width": 854,
                         "x": 0,
-                        "y": 639
+                        "y": 615
                     },
                     {
-                        "height": 640,
-                        "id": 14,
+                        "height": 616,
+                        "id": 15,
                         "relativeIndex": 1,
                         "state": "normal",
                         "widgetType": 10,
                         "width": 854,
                         "x": 853,
-                        "y": 639
+                        "y": 615
                     },
                     {
-                        "height": 640,
-                        "id": 15,
+                        "height": 616,
+                        "id": 16,
                         "relativeIndex": 2,
                         "state": "normal",
                         "widgetType": 10,
                         "width": 854,
                         "x": 1706,
-                        "y": 639
+                        "y": 615
                     }
                 ],
                 "userReordered": false,
                 "windowOrder": [
                     1,
-                    9,
                     10,
                     11,
                     12,
-                    14,
-                    15
+                    13,
+                    15,
+                    16
                 ],
                 "windowOrderTyped": [
                     {
@@ -659,6 +910,35 @@
                     {
                         "relativeIndex": 2,
                         "widgetType": 10
+                    }
+                ]
+            }
+        },
+        "layout:1005": {
+            "data": {
+                "autoLayout": true,
+                "canvasHeight": 1232,
+                "canvasWidth": 2562,
+                "geometries": [
+                    {
+                        "height": 1232,
+                        "id": 5,
+                        "relativeIndex": 0,
+                        "state": "normal",
+                        "widgetType": 19,
+                        "width": 2562,
+                        "x": 0,
+                        "y": 0
+                    }
+                ],
+                "userReordered": false,
+                "windowOrder": [
+                    5
+                ],
+                "windowOrderTyped": [
+                    {
+                        "relativeIndex": 0,
+                        "widgetType": 19
                     }
                 ]
             }
