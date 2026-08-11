@@ -5,6 +5,12 @@
 
 void SerialConsole::addCommand(const char* name, const char* usage, Handler handler) {
     if (commandCount_ >= kMaxCommands) {
+        // Loud rather than silent: a dropped command otherwise shows up much
+        // later as a command that simply does not exist.
+        io_.print("command table full, dropped '");
+        io_.print(name);
+        io_.println("' - raise kMaxCommands");
+
         return;
     }
 

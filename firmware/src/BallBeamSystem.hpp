@@ -2,6 +2,9 @@
 
 #include "control/BallBeamController.hpp"
 #include "control/BallBeamState.hpp"
+#include "control/BallEstimator.hpp"
+#include "diagnostics/BallRollTest.hpp"
+#include "diagnostics/SensorNoiseTest.hpp"
 #include "hardware/BallSensor.hpp"
 #include "hardware/BeamServo.hpp"
 #include "motion/MotionTest.hpp"
@@ -91,6 +94,21 @@ class BallBeamSystem {
         return motionTest_;
     }
 
+    /** @returns the sensor noise characterization run. */
+    SensorNoiseTest& noiseTest() {
+        return noiseTest_;
+    }
+
+    /** @returns the plant-constant measurement run. */
+    BallRollTest& rollTest() {
+        return rollTest_;
+    }
+
+    /** @returns the ball position and velocity estimator. */
+    BallEstimator& estimator() {
+        return estimator_;
+    }
+
     /** @returns the most recent ball state handed to a controller. */
     BallBeamState state() const;
 
@@ -104,15 +122,20 @@ class BallBeamSystem {
     BeamServo& beam_;
     IBallSensor& sensor_;
     MotionTest motionTest_;
+    SensorNoiseTest noiseTest_;
+    BallRollTest rollTest_;
+    BallEstimator estimator_;
     BallBeamController* controller_ = nullptr;
+
+    BallMeasurement lastMeasurement_;
+    bool hasNewMeasurement_ = false;
 
     bool isReady_ = false;
     float targetMm_ = 0.0f;
 
     unsigned long lastTickMs_ = 0;
     unsigned long lastValidMeasurementMs_ = 0;
-    float lastPositionMm_ = 0.0f;
-    float lastVelocityMmPerSecond_ = 0.0f;
+    float lastRawDistanceMm_ = 0.0f;
     bool hasPosition_ = false;
 
     BallBeamState state_;

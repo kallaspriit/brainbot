@@ -2,6 +2,7 @@
 
 #include "BallBeamSystem.hpp"
 #include "SerialConsole.hpp"
+#include "hardware/Vl53l0xBallSensor.hpp"
 #include "telemetry/TelemetryStream.hpp"
 
 /**
@@ -17,10 +18,13 @@ class RigCommands {
     /**
      * @param system    The rig.
      * @param telemetry Telemetry stream to enable and pace.
+     * @param sensor    Concrete sensor, for the preset profiles that only exist
+     *                  on the VL53L0X and so cannot sit behind IBallSensor.
      */
-    RigCommands(BallBeamSystem& system, TelemetryStream& telemetry)
+    RigCommands(BallBeamSystem& system, TelemetryStream& telemetry, Vl53l0xBallSensor& sensor)
         : system_(system),
-          telemetry_(telemetry) {
+          telemetry_(telemetry),
+          sensor_(sensor) {
     }
 
     /**
@@ -33,4 +37,5 @@ class RigCommands {
   private:
     BallBeamSystem& system_;
     TelemetryStream& telemetry_;
+    Vl53l0xBallSensor& sensor_;
 };

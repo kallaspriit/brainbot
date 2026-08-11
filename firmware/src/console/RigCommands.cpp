@@ -197,6 +197,255 @@ void RigCommands::registerCommands(SerialConsole& console) {
         Serial << "test stopped" << endl;
     });
 
+    console.addCommand("noisetest", "noisetest [seconds]        - sensor noise with the ball held still", [this](SerialConsole& c) {
+        const float seconds = c.nextFloat(5.0f);
+
+        if (seconds <= 0.0f || seconds > 60.0f) {
+            Serial << "usage: noisetest [seconds 0..60]" << endl;
+
+            return;
+        }
+
+        if (!system_.sensor().isPresent()) {
+            Serial << "no distance sensor detected" << endl;
+
+            return;
+        }
+
+        const bool wasStreaming = telemetry_.isEnabled();
+
+        // Frames would interleave with the report and confuse Serial Studio's
+        // frame reader, and the console is blocked for the run anyway.
+        telemetry_.setEnabled(false);
+
+        {
+            const HardwareLock lock;
+
+            system_.noiseTest().start((unsigned long)(seconds * 1000.0f), millis());
+        }
+
+        Serial << "sampling for " << seconds << " s - keep the ball still" << endl;
+
+        // Blocking is fine here: the control tick lives on core 1 and keeps
+        // running, so the beam stays under control while the console waits. The
+        // deadline is a backstop in case core 1 is not ticking at all, which
+        // would otherwise wedge the console with no way back.
+        const unsigned long deadlineMs = millis() + (unsigned long)(seconds * 1000.0f) + 2000;
+
+        while (!system_.noiseTest().isComplete() && millis() < deadlineMs) {
+            delay(20);
+        }
+
+        if (!system_.noiseTest().isComplete()) {
+            Serial << "timed out - is the control loop running on core 1?" << endl;
+
+            return;
+        }
+
+        uint32_t budgetUs = 0;
+
+        {
+            const HardwareLock lock;
+
+            budgetUs = system_.sensor().timingBudgetUs();
+        }
+
+        system_.noiseTest().report(Serial, budgetUs);
+
+        telemetry_.setEnabled(wasStreaming);
+    });
+
+    console.addCommand("budget", "budget [us]                - sensor integration time (omit to read)", [this](SerialConsole& c) {
+        const int budgetUs = c.nextInt(-1);
+
+        if (budgetUs < 0) {
+            uint32_t current = 0;
+
+            {
+                const HardwareLock lock;
+
+                current = system_.sensor().timingBudgetUs();
+            }
+
+            Serial << "timing budget " << current << " us" << endl;
+
+            return;
+        }
+
+        if (budgetUs < 20000 || budgetUs > 500000) {
+            Serial << "usage: budget [us 20000..500000]" << endl;
+
+            return;
+        }
+
+        bool isOk = false;
+        uint32_t actual = 0;
+
+        {
+            const HardwareLock lock;
+
+            isOk = system_.sensor().setTimingBudgetUs((uint32_t)budgetUs);
+            actual = system_.sensor().timingBudgetUs();
+        }
+
+        if (!isOk) {
+            Serial << "sensor rejected that timing budget" << endl;
+
+            return;
+        }
+
+        // The device quantizes the budget to what its sequence-step timeouts can
+        // express, so the value it reports back is the one that matters.
+        Serial << "timing budget " << actual << " us (requested " << budgetUs << ")" << endl;
+    });
+
+    console.addCommand("sensorreset", "sensorreset                - re-initialize the distance sensor", [this](SerialConsole&) {
+        bool isOk = false;
+
+        {
+            const HardwareLock lock;
+
+            isOk = sensor_.begin();
+        }
+
+        if (isOk) {
+            Serial << "sensor re-initialized" << endl;
+        } else {
+            Serial << "sensor did not respond - power cycle it" << endl;
+        }
+    });
+
+    console.addCommand("sensor", "sensor <default|long|fast|accurate> - VL53L0X preset profile", [this](SerialConsole& c) {
+        const char* token = c.nextToken();
+
+        if (token == nullptr) {
+            Serial << "usage: sensor <default|long|fast|accurate>" << endl;
+
+            return;
+        }
+
+        Vl53l0xBallSensor::Profile profile = Vl53l0xBallSensor::Profile::Default;
+
+        if (strcmp(token, "long") == 0) {
+            profile = Vl53l0xBallSensor::Profile::LongRange;
+        } else if (strcmp(token, "fast") == 0) {
+            profile = Vl53l0xBallSensor::Profile::HighSpeed;
+        } else if (strcmp(token, "accurate") == 0) {
+            profile = Vl53l0xBallSensor::Profile::HighAccuracy;
+        } else if (strcmp(token, "default") != 0) {
+            Serial << "usage: sensor <default|long|fast|accurate>" << endl;
+
+            return;
+        }
+
+        bool isOk = false;
+
+        {
+            const HardwareLock lock;
+
+            isOk = sensor_.setProfile(profile);
+        }
+
+        uint32_t actual = 0;
+
+        {
+            const HardwareLock lock;
+
+            actual = system_.sensor().timingBudgetUs();
+        }
+
+        if (isOk) {
+            Serial << "sensor profile " << token << ", timing budget " << actual << " us" << endl;
+        } else {
+            Serial << "sensor rejected that profile" << endl;
+        }
+    });
+
+    console.addCommand("rolltest", "rolltest <deg> [ms]        - measure ball accel per degree of tilt", [this](SerialConsole& c) {
+        const float degrees = c.nextFloat(0.0f);
+        const int durationMs = c.nextInt(1500);
+
+        if (degrees == 0.0f || durationMs < 300) {
+            Serial << "usage: rolltest <deg> [ms >= 300]  (put the ball at the uphill end first)" << endl;
+
+            return;
+        }
+
+        if (!system_.sensor().isPresent()) {
+            Serial << "no distance sensor detected" << endl;
+
+            return;
+        }
+
+        const bool wasStreaming = telemetry_.isEnabled();
+
+        telemetry_.setEnabled(false);
+
+        {
+            const HardwareLock lock;
+
+            system_.beam().enable();
+            system_.motionTest().stop();
+            system_.rollTest().start(degrees, (unsigned long)durationMs, 250, millis());
+        }
+
+        Serial << "rolling at " << degrees << " deg for " << durationMs << " ms" << endl;
+
+        const unsigned long deadlineMs = millis() + (unsigned long)durationMs + 2000;
+
+        while (!system_.rollTest().isComplete() && millis() < deadlineMs) {
+            delay(20);
+        }
+
+        {
+            const HardwareLock lock;
+
+            system_.rollTest().stop();
+            system_.beam().setAngle(0.0f);
+        }
+
+        if (!system_.rollTest().isComplete()) {
+            Serial << "timed out - is the control loop running on core 1?" << endl;
+        } else {
+            system_.rollTest().report(Serial);
+        }
+
+        telemetry_.setEnabled(wasStreaming);
+    });
+
+    console.addCommand("est", "est [accel] [q] [gate]     - estimator tuning (omit to read)", [this](SerialConsole& c) {
+        const float accelPerDegree = c.nextFloat(0.0f);
+
+        if (accelPerDegree == 0.0f) {
+            const BallEstimator::Params& params = system_.estimator().params();
+            const BallBeamState state = system_.state();
+
+            Serial << "accel per degree  " << params.accelPerDegree << " mm/s^2/deg" << endl;
+            Serial << "process noise     " << params.processNoiseMmPerS2 << " mm/s^2" << endl;
+            Serial << "sensor sigma      " << params.sensorNoiseBaseMm << " + " << params.sensorNoiseQuadratic << " * d^2  (" << system_.estimator().sensorSigmaAt(state.positionMm) << " mm here)" << endl;
+            Serial << "innovation gate   " << params.innovationGateSigma << " sigma, " << system_.estimator().consecutiveRejects() << " rejected in a row" << endl;
+            Serial << "estimate          " << state.positionMm << " +-" << system_.estimator().positionSigmaMm() << " mm, " << state.velocityMmPerSecond << " +-"
+                   << system_.estimator().velocitySigmaMmPerS() << " mm/s" << endl;
+
+            return;
+        }
+
+        const float processNoise = c.nextFloat(system_.estimator().params().processNoiseMmPerS2);
+        const float gate = c.nextFloat(system_.estimator().params().innovationGateSigma);
+
+        {
+            const HardwareLock lock;
+
+            BallEstimator::Params& params = system_.estimator().params();
+
+            params.accelPerDegree = accelPerDegree;
+            params.processNoiseMmPerS2 = processNoise;
+            params.innovationGateSigma = gate;
+        }
+
+        Serial << "accel " << accelPerDegree << " mm/s^2/deg, process noise " << processNoise << " mm/s^2, gate " << gate << " sigma" << endl;
+    });
+
     console.addCommand("state", "state                      - ball position, velocity, beam angle", [this](SerialConsole&) {
         const BallBeamState state = system_.state();
 

@@ -15,6 +15,8 @@ struct TelemetrySnapshot {
     float beamAngleDegrees = 0.0f;
     float targetAngleDegrees = 0.0f;
     St3215::ServoFeedback feedback;
+    float estimatedPositionMm = 0.0f;
+    float estimatedVelocityMmPerSecond = 0.0f;
 };
 
 namespace Telemetry {

@@ -47,10 +47,15 @@ constexpr uint8_t kBeamServoKp = 120;
 constexpr uint8_t kBeamServoKd = 120;
 constexpr uint8_t kBeamServoKi = 0;
 
-// Position error the servo treats as "arrived", in encoder steps. One step is
-// the factory default and costs ~0.09 deg of standing error; zero holds the
-// exact count but can hunt at high Kp. Try both with the "deadband" command.
-constexpr uint8_t kBeamServoDeadband = 1;
+// Position error the servo treats as "arrived", in encoder steps.
+//
+// Zero, and it matters far more than it looks. The factory default of 1 step
+// creates a dead zone the beam cannot resolve inside, which is invisible on a
+// 4 deg swing and crippling on a small one: measured small-signal gain at
+// +-0.5 deg was 0.66 with a deadband of 1, and 0.94 with it at 0. A regulator
+// spends all its time in exactly that small-signal regime, so the difference is
+// a third of the loop gain right at the operating point.
+constexpr uint8_t kBeamServoDeadband = 0;
 
 // Beam angles beyond this are clamped. The controller never needs more than a
 // few degrees, so this is a backstop against a runaway command dumping the ball
@@ -86,6 +91,46 @@ constexpr unsigned long kControlIntervalMs = 10;
 constexpr unsigned long kDefaultDebugIntervalMs = 30;
 constexpr unsigned long kMinDebugIntervalMs = 2;
 constexpr unsigned long kMaxDebugIntervalMs = 1000;
+
+// --- Ball position estimate ---
+
+// Measurement noise grows with distance, because a time-of-flight sensor's
+// return signal falls as 1/d^2 and its noise with the square root of that. Fitted
+// to two measured points: sigma 13.5 mm at 292 mm, 31.9 mm at 546 mm.
+//
+//   sigma(d) = kSensorNoiseBaseMm + kSensorNoiseQuadratic * d^2
+//
+// Feeding the filter one fixed noise figure would make it trust the far end of
+// the beam six times more than it deserves, which is where it can least afford
+// to be wrong.
+constexpr float kSensorNoiseBaseMm = 6.2f;
+constexpr float kSensorNoiseQuadratic = 8.6e-5f;
+
+// Ball acceleration per degree of beam tilt, mm/s^2 per degree, signed so that
+// positive means the ball accelerates towards larger distance readings.
+//
+// Theory gives about 110 for a ball rolling without slipping. "rolltest"
+// measures it on the actual rig, including the sign, which depends on how the
+// servo happens to be mounted and is not worth guessing.
+constexpr float kAccelPerDegree = 110.0f;
+
+// Acceleration the model does not account for: rolling friction, the ball
+// slipping rather than rolling, the beam flexing. Sets how quickly the filter is
+// willing to abandon its prediction in favour of the measurements.
+constexpr float kProcessNoiseMmPerS2 = 400.0f;
+
+// A measurement further than this many standard deviations from the prediction
+// is treated as an outlier rather than as news. Generous, because the cost of
+// rejecting a real measurement is worse than the cost of accepting a bad one.
+constexpr float kInnovationGateSigma = 4.0f;
+
+// Consecutive rejections before the filter concludes its state is wrong rather
+// than the measurements, and reinitializes. This is what happens when the ball
+// is picked up and put down somewhere else.
+constexpr uint8_t kMaxConsecutiveRejects = 6;
+
+// Initial velocity uncertainty when the filter starts or restarts.
+constexpr float kInitialVelocitySigmaMmPerS = 300.0f;
 
 // --- Beam geometry ---
 

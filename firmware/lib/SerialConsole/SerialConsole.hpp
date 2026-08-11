@@ -71,7 +71,7 @@ class SerialConsole {
     void printHelp();
 
   private:
-    static constexpr size_t kMaxCommands = 32;
+    static constexpr size_t kMaxCommands = 64;
     static constexpr size_t kBufferSize = 96;
 
     struct Command {

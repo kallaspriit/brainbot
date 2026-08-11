@@ -26,6 +26,12 @@ The beam boots relaxed and takes torque only when something asks it to move, so
 | `angle <deg>` | Command the beam directly; stops any running test. |
 | `trim <deg>` | Servo angle at which the beam is actually level. |
 | `deadband <id> <cw> <ccw>` | Position deadband in encoder steps. The factory default of 1 costs ~0.09 deg of standing error; 0 holds the exact count but can hunt at high Kp. |
+| `noisetest [seconds]` | Sensor noise with the ball held still. Reports the spread of the readings *and* the spread of the differences between consecutive readings — the second is what a derivative term amplifies, and it is the number that decides how much filtering the estimator needs. |
+| `budget <us>` | VL53L0X integration time. Longer is quieter but slower, and the optimum is a real trade rather than "more is better": latency costs the D term as much as noise does. |
+| `sensor <default\|long\|fast\|accurate>` | Preset signal-rate and VCSEL-period profiles. |
+| `rolltest <deg> [ms]` | Holds a tilt, fits a parabola to the ball's travel, and reports acceleration per degree — the plant constant, including its sign. Put the ball at the uphill end first so it has room to roll. |
+| `est [accel] [q] [gate]` | Estimator tuning and live state. Omit the values to read. |
+| `sensorreset` | Re-initializes the distance sensor. |
 | `state` | Ball position and velocity, beam angle, sensor and controller status. |
 
 ## Frame format
@@ -53,6 +59,13 @@ interactive console keeps working while frames stream.
 | 7     | Current       | mA      | Signed                                        |
 | 8     | Voltage       | V       | Bus voltage                                   |
 | 9     | Temperature   | C       | Servo case temperature                        |
+| 10    | Est. position | mm      | Kalman-filtered ball position                 |
+| 11    | Est. velocity | mm/s    | Kalman-filtered ball velocity, + away from sensor |
+
+Fields 10 and 11 were added after `brainbot.ssproj` was written. Serial Studio maps
+datasets by index, so the existing nine keep working untouched — add two datasets
+pointing at indexes 10 and 11 to plot the estimate against the raw distance in
+field 1, which is the quickest way to see whether the filter is doing its job.
 
 Fields 2-9 come from a single bulk read of the beam servo (`Config::kBeamServoId`),
 refreshed once per control tick (100 Hz) on core 1. If that read fails, the previous

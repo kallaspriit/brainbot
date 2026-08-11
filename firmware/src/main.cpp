@@ -25,7 +25,7 @@ static BallBeamSystem rig(beam, distanceSensor);
 static SerialConsole console(Serial);
 static TelemetryStream telemetry(Serial, rig);
 static ServoCommands servoCommands(servo, beam);
-static RigCommands rigCommands(rig, telemetry);
+static RigCommands rigCommands(rig, telemetry, distanceSensor);
 
 void setup() {
     Serial.begin(115200);

@@ -28,6 +28,26 @@ class Vl53l0xBallSensor : public IBallSensor {
         return "VL53L0X";
     }
 
+    bool setTimingBudgetUs(uint32_t budgetUs) override;
+    uint32_t timingBudgetUs() override;
+
+    /** Preset accuracy/speed profiles offered by the driver. */
+    enum class Profile {
+        Default,
+        LongRange,
+        HighSpeed,
+        HighAccuracy,
+    };
+
+    /**
+     * Applies one of the driver's preset profiles, which set the signal rate
+     * limit and VCSEL pulse periods together.
+     *
+     * @param profile Profile to apply.
+     * @returns true if the sensor accepted it.
+     */
+    bool setProfile(Profile profile);
+
     /** @returns readings rejected as out of range since boot. */
     unsigned long rejectedCount() const {
         return rejectedCount_;
@@ -37,4 +57,7 @@ class Vl53l0xBallSensor : public IBallSensor {
     Adafruit_VL53L0X sensor_;
     bool isPresent_ = false;
     unsigned long rejectedCount_ = 0;
+
+    /** Restarts continuous ranging with a period that fits the timing budget. */
+    void restartRanging();
 };

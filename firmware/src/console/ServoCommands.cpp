@@ -8,43 +8,68 @@
 
 namespace {
 
+/** Operating mode names, indexed by St3215::Mode. */
+const char* const kModeNames[] = {"position", "speed", "pwm", "step"};
+
 /** Prints a deci-volt value (tenths of a volt) as "X.Y V". */
 void printVolts(int deciVolts) {
     Serial << (deciVolts / 10) << "." << (deciVolts % 10) << " V";
 }
 
+/**
+ * Prints the names of the fault bits set in a mask, or "none". Shared by the
+ * live status byte and the unloading-condition mask, which use the same layout.
+ *
+ * @param raw Fault bitmask.
+ */
+void printFaultNames(uint8_t raw) {
+    if (raw == 0) {
+        Serial << "none";
+
+        return;
+    }
+
+    if ((raw & (uint8_t)St3215::Fault::Voltage) != 0) {
+        Serial << "voltage ";
+    }
+
+    if ((raw & (uint8_t)St3215::Fault::Sensor) != 0) {
+        Serial << "sensor ";
+    }
+
+    if ((raw & (uint8_t)St3215::Fault::Temperature) != 0) {
+        Serial << "temperature ";
+    }
+
+    if ((raw & (uint8_t)St3215::Fault::Current) != 0) {
+        Serial << "current ";
+    }
+
+    if ((raw & (uint8_t)St3215::Fault::Overload) != 0) {
+        Serial << "overload ";
+    }
+}
+
 /** Prints the servo's decoded status/fault flags. */
 void printStatusFlags(const St3215::ServoStatus& status) {
     Serial << "Status flags: ";
-
-    if (status.raw == 0) {
-        Serial << "none";
-    } else {
-        if (status.hasVoltageFault) {
-            Serial << "voltage ";
-        }
-
-        if (status.hasSensorFault) {
-            Serial << "sensor ";
-        }
-
-        if (status.hasTemperatureFault) {
-            Serial << "temperature ";
-        }
-
-        if (status.hasCurrentFault) {
-            Serial << "current ";
-        }
-
-        if (status.hasOverloadFault) {
-            Serial << "overload ";
-        }
-    }
-
+    printFaultNames(status.raw);
     Serial << endl;
 }
 
 } // namespace
+
+int ServoCommands::readByteLocked(uint8_t id, St3215::Register reg) {
+    const HardwareLock lock;
+
+    return servo_.readByte(id, reg);
+}
+
+int ServoCommands::readWordLocked(uint8_t id, St3215::Register reg) {
+    const HardwareLock lock;
+
+    return servo_.readWord(id, reg);
+}
 
 void ServoCommands::scanBus() {
     Serial << "Scanning IDs 1.." << Config::kMaxScanId << " ..." << endl;
@@ -313,12 +338,33 @@ void ServoCommands::registerCommands(SerialConsole& console) {
         Serial << "speed " << id << " = " << value << endl;
     });
 
-    console.addCommand("mode", "mode <id> <0|1|2|3>        - position/speed/pwm/step", [this](SerialConsole& c) {
+    console.addCommand("mode", "mode <id> [0|1|2|3]        - position/speed/pwm/step (omit to read)", [this](SerialConsole& c) {
         const int id = c.nextInt(-1);
+
+        if (id < 1) {
+            Serial << "usage: mode <id> [0=pos 1=speed 2=pwm 3=step]" << endl;
+
+            return;
+        }
+
         const int mode = c.nextInt(-1);
 
-        if (id < 1 || mode < 0 || mode > 3) {
-            Serial << "usage: mode <id> <0=pos 1=speed 2=pwm 3=step>" << endl;
+        if (mode < 0) {
+            const int current = readByteLocked((uint8_t)id, St3215::Register::OperatingMode);
+
+            if (current < 0) {
+                Serial << "servo " << id << " no response" << endl;
+
+                return;
+            }
+
+            Serial << "mode " << id << " = " << current << " (" << kModeNames[current & 0x03] << ")" << endl;
+
+            return;
+        }
+
+        if (mode > 3) {
+            Serial << "usage: mode <id> [0=pos 1=speed 2=pwm 3=step]" << endl;
 
             return;
         }
@@ -355,13 +401,35 @@ void ServoCommands::registerCommands(SerialConsole& console) {
         }
     });
 
-    console.addCommand("anglelimit", "anglelimit <id> <min> <max> - position limits (0..4095, 0/0 = none)", [this](SerialConsole& c) {
+    console.addCommand("anglelimit", "anglelimit <id> [min] [max] - position limits (omit to read, 0/0 = none)", [this](SerialConsole& c) {
         const int id = c.nextInt(-1);
+
+        if (id < 1) {
+            Serial << "usage: anglelimit <id> [min 0..4095] [max 0..4095]" << endl;
+
+            return;
+        }
+
         const int low = c.nextInt(-1);
         const int high = c.nextInt(-1);
 
-        if (id < 1 || low < 0 || low > 4095 || high < 0 || high > 4095) {
-            Serial << "usage: anglelimit <id> <min 0..4095> <max 0..4095>" << endl;
+        if (low < 0) {
+            const int currentLow = readWordLocked((uint8_t)id, St3215::Register::MinAngleLimitL);
+            const int currentHigh = readWordLocked((uint8_t)id, St3215::Register::MaxAngleLimitL);
+
+            if (currentLow < 0) {
+                Serial << "servo " << id << " no response" << endl;
+
+                return;
+            }
+
+            Serial << "angle limits " << id << " = " << currentLow << ".." << currentHigh << (currentLow == 0 && currentHigh == 0 ? " (none)" : "") << endl;
+
+            return;
+        }
+
+        if (low > 4095 || high < 0 || high > 4095) {
+            Serial << "usage: anglelimit <id> [min 0..4095] [max 0..4095]" << endl;
 
             return;
         }
@@ -381,12 +449,33 @@ void ServoCommands::registerCommands(SerialConsole& console) {
         }
     });
 
-    console.addCommand("torquelimit", "torquelimit <id> <0..1000> - output torque limit", [this](SerialConsole& c) {
+    console.addCommand("torquelimit", "torquelimit <id> [0..1000] - output torque limit (omit to read)", [this](SerialConsole& c) {
         const int id = c.nextInt(-1);
+
+        if (id < 1) {
+            Serial << "usage: torquelimit <id> [0..1000]" << endl;
+
+            return;
+        }
+
         const int limit = c.nextInt(-1);
 
-        if (id < 1 || limit < 0 || limit > 1000) {
-            Serial << "usage: torquelimit <id> <0..1000>" << endl;
+        if (limit < 0) {
+            const int current = readWordLocked((uint8_t)id, St3215::Register::TorqueLimitL);
+
+            if (current < 0) {
+                Serial << "servo " << id << " no response" << endl;
+
+                return;
+            }
+
+            Serial << "torque limit " << id << " = " << current << endl;
+
+            return;
+        }
+
+        if (limit > 1000) {
+            Serial << "usage: torquelimit <id> [0..1000]" << endl;
 
             return;
         }
@@ -406,14 +495,37 @@ void ServoCommands::registerCommands(SerialConsole& console) {
         }
     });
 
-    console.addCommand("pid", "pid <id> <kp> <kd> <ki>    - position loop gains (0..255)", [this](SerialConsole& c) {
+    console.addCommand("pid", "pid <id> [kp] [kd] [ki]    - position loop gains (omit to read)", [this](SerialConsole& c) {
         const int id = c.nextInt(-1);
+
+        if (id < 1) {
+            Serial << "usage: pid <id> [kp] [kd] [ki]  (each 0..255)" << endl;
+
+            return;
+        }
+
         const int kp = c.nextInt(-1);
         const int kd = c.nextInt(-1);
         const int ki = c.nextInt(-1);
 
-        if (id < 1 || kp < 0 || kp > 255 || kd < 0 || kd > 255 || ki < 0 || ki > 255) {
-            Serial << "usage: pid <id> <kp> <kd> <ki>  (each 0..255)" << endl;
+        if (kp < 0) {
+            const int currentKp = readByteLocked((uint8_t)id, St3215::Register::PositionKp);
+            const int currentKd = readByteLocked((uint8_t)id, St3215::Register::PositionKd);
+            const int currentKi = readByteLocked((uint8_t)id, St3215::Register::PositionKi);
+
+            if (currentKp < 0) {
+                Serial << "servo " << id << " no response" << endl;
+
+                return;
+            }
+
+            Serial << "pid " << id << " = " << currentKp << "/" << currentKd << "/" << currentKi << endl;
+
+            return;
+        }
+
+        if (kp > 255 || kd < 0 || kd > 255 || ki < 0 || ki > 255) {
+            Serial << "usage: pid <id> [kp] [kd] [ki]  (each 0..255)" << endl;
 
             return;
         }
@@ -434,13 +546,35 @@ void ServoCommands::registerCommands(SerialConsole& console) {
         }
     });
 
-    console.addCommand("deadband", "deadband <id> <cw> <ccw>   - position deadband in steps (0 = tightest)", [this](SerialConsole& c) {
+    console.addCommand("deadband", "deadband <id> [cw] [ccw]   - position deadband in steps (omit to read)", [this](SerialConsole& c) {
         const int id = c.nextInt(-1);
+
+        if (id < 1) {
+            Serial << "usage: deadband <id> [cw 0..255] [ccw 0..255]" << endl;
+
+            return;
+        }
+
         const int cw = c.nextInt(-1);
         const int ccw = c.nextInt(-1);
 
-        if (id < 1 || cw < 0 || cw > 255 || ccw < 0 || ccw > 255) {
-            Serial << "usage: deadband <id> <cw 0..255> <ccw 0..255>" << endl;
+        if (cw < 0) {
+            const int currentCw = readByteLocked((uint8_t)id, St3215::Register::CwDeadband);
+            const int currentCcw = readByteLocked((uint8_t)id, St3215::Register::CcwDeadband);
+
+            if (currentCw < 0) {
+                Serial << "servo " << id << " no response" << endl;
+
+                return;
+            }
+
+            Serial << "deadband " << id << " = " << currentCw << "/" << currentCcw << " steps" << endl;
+
+            return;
+        }
+
+        if (cw > 255 || ccw < 0 || ccw > 255) {
+            Serial << "usage: deadband <id> [cw 0..255] [ccw 0..255]" << endl;
 
             return;
         }
@@ -460,12 +594,35 @@ void ServoCommands::registerCommands(SerialConsole& console) {
         }
     });
 
-    console.addCommand("unload", "unload <id> <mask>         - faults that release torque (bitmask)", [this](SerialConsole& c) {
+    console.addCommand("unload", "unload <id> [mask]         - faults that release torque (omit to read)", [this](SerialConsole& c) {
         const int id = c.nextInt(-1);
+
+        if (id < 1) {
+            Serial << "usage: unload <id> [mask]  (0x01 volt 0x02 sensor 0x04 temp 0x08 current 0x20 overload)" << endl;
+
+            return;
+        }
+
         const int mask = c.nextInt(-1);
 
-        if (id < 1 || mask < 0 || mask > 255) {
-            Serial << "usage: unload <id> <mask>  (0x01 volt 0x02 sensor 0x04 temp 0x08 current 0x20 overload)" << endl;
+        if (mask < 0) {
+            const int current = readByteLocked((uint8_t)id, St3215::Register::UnloadingCondition);
+
+            if (current < 0) {
+                Serial << "servo " << id << " no response" << endl;
+
+                return;
+            }
+
+            Serial << "unload condition " << id << " = " << current << " (";
+            printFaultNames((uint8_t)current);
+            Serial << ")" << endl;
+
+            return;
+        }
+
+        if (mask > 255) {
+            Serial << "usage: unload <id> [mask]  (0x01 volt 0x02 sensor 0x04 temp 0x08 current 0x20 overload)" << endl;
 
             return;
         }
@@ -541,9 +698,30 @@ void ServoCommands::registerCommands(SerialConsole& console) {
         Serial << "relaxed all servos (broadcast)" << endl;
     });
 
-    console.addCommand("torque", "torque <id> <0|1>          - torque off / on", [this](SerialConsole& c) {
+    console.addCommand("torque", "torque <id> [0|1]          - torque off / on (omit to read)", [this](SerialConsole& c) {
         const int id = c.nextInt(-1);
+
+        if (id < 1) {
+            Serial << "usage: torque <id> [0|1]" << endl;
+
+            return;
+        }
+
         const int on = c.nextInt(-1);
+
+        if (on < 0) {
+            const int current = readByteLocked((uint8_t)id, St3215::Register::TorqueEnable);
+
+            if (current < 0) {
+                Serial << "servo " << id << " no response" << endl;
+
+                return;
+            }
+
+            Serial << "torque " << id << " = " << current << (current != 0 ? " (holding)" : " (free)") << endl;
+
+            return;
+        }
 
         {
             const HardwareLock lock;

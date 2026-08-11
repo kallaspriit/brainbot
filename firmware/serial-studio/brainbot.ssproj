@@ -1,7 +1,21 @@
 {
     "actions": [
+        {
+            "autoExecuteOnConnect": false,
+            "binary": false,
+            "eol": "",
+            "icon": "Play Property",
+            "repeatCount": 3,
+            "sourceId": 0,
+            "timerIntervalMs": 100,
+            "timerMode": 0,
+            "title": "Tilt left",
+            "txData": "move 3 2000",
+            "txEncoding": 0
+        }
     ],
     "changeDrivenTransforms": false,
+    "customizeWorkspaces": true,
     "diagramCollapse": {
         "grp:0": false
     },
@@ -336,7 +350,7 @@
         "sslProtocol": 5,
         "topicBase": ""
     },
-    "nextUniqueId": 13,
+    "nextUniqueId": 14,
     "plotTimeRange": 10,
     "pointCount": 4000,
     "schemaVersion": 3,
@@ -392,12 +406,13 @@
         "Brainbot Ball & Beam/MQTT Publisher": false,
         "Brainbot Ball & Beam/Shared Memory": true,
         "Brainbot Ball & Beam/Shared Memory/Dataset Values": false,
+        "Brainbot Ball & Beam/Tilt left": false,
         "Brainbot Ball & Beam/Workspaces": true,
         "Brainbot Ball & Beam/Workspaces/All Data": false,
         "Brainbot Ball & Beam/Workspaces/Ball": false,
         "Brainbot Ball & Beam/Workspaces/Beam": false,
         "Brainbot Ball & Beam/Workspaces/Beam Servo": false,
-        "Brainbot Ball & Beam/Workspaces/Output Controls": false,
+        "Brainbot Ball & Beam/Workspaces/Controls": false,
         "Brainbot Ball & Beam/Workspaces/Overview": false
     },
     "widgetSettings": {
@@ -944,6 +959,206 @@
             }
         }
     },
+    "workspaces": [
+        {
+            "icon": "qrc:/icons/panes/overview.svg",
+            "title": "Overview",
+            "widgetRefs": [
+                {
+                    "groupId": 10,
+                    "relativeIndex": 0,
+                    "widgetType": 2
+                },
+                {
+                    "groupId": 11,
+                    "relativeIndex": 0,
+                    "widgetType": 1
+                },
+                {
+                    "groupId": 12,
+                    "relativeIndex": 0,
+                    "widgetType": 19
+                }
+            ],
+            "workspaceId": 1000
+        },
+        {
+            "icon": "qrc:/icons/panes/dashboard.svg",
+            "title": "All Data",
+            "widgetRefs": [
+                {
+                    "groupId": 9,
+                    "relativeIndex": 0,
+                    "widgetType": 10
+                },
+                {
+                    "groupId": 9,
+                    "relativeIndex": 0,
+                    "widgetType": 9
+                },
+                {
+                    "groupId": 10,
+                    "relativeIndex": 0,
+                    "widgetType": 2
+                },
+                {
+                    "groupId": 10,
+                    "relativeIndex": 0,
+                    "widgetType": 11
+                },
+                {
+                    "groupId": 10,
+                    "relativeIndex": 1,
+                    "widgetType": 9
+                },
+                {
+                    "groupId": 10,
+                    "relativeIndex": 2,
+                    "widgetType": 9
+                },
+                {
+                    "groupId": 11,
+                    "relativeIndex": 0,
+                    "widgetType": 1
+                },
+                {
+                    "groupId": 11,
+                    "relativeIndex": 3,
+                    "widgetType": 9
+                },
+                {
+                    "groupId": 11,
+                    "relativeIndex": 4,
+                    "widgetType": 9
+                },
+                {
+                    "groupId": 11,
+                    "relativeIndex": 5,
+                    "widgetType": 9
+                },
+                {
+                    "groupId": 11,
+                    "relativeIndex": 6,
+                    "widgetType": 9
+                },
+                {
+                    "groupId": 11,
+                    "relativeIndex": 1,
+                    "widgetType": 10
+                },
+                {
+                    "groupId": 11,
+                    "relativeIndex": 2,
+                    "widgetType": 10
+                },
+                {
+                    "groupId": 12,
+                    "relativeIndex": 0,
+                    "widgetType": 19
+                }
+            ],
+            "workspaceId": 1001
+        },
+        {
+            "title": "Ball",
+            "widgetRefs": [
+                {
+                    "groupId": 9,
+                    "relativeIndex": 0,
+                    "widgetType": 10
+                },
+                {
+                    "groupId": 9,
+                    "relativeIndex": 0,
+                    "widgetType": 9
+                }
+            ],
+            "workspaceId": 1002
+        },
+        {
+            "title": "Beam",
+            "widgetRefs": [
+                {
+                    "groupId": 10,
+                    "relativeIndex": 0,
+                    "widgetType": 2
+                },
+                {
+                    "groupId": 10,
+                    "relativeIndex": 0,
+                    "widgetType": 11
+                },
+                {
+                    "groupId": 10,
+                    "relativeIndex": 1,
+                    "widgetType": 9
+                },
+                {
+                    "groupId": 10,
+                    "relativeIndex": 2,
+                    "widgetType": 9
+                },
+                {
+                    "groupId": 12,
+                    "relativeIndex": 0,
+                    "widgetType": 19
+                }
+            ],
+            "workspaceId": 1003
+        },
+        {
+            "title": "Beam Servo",
+            "widgetRefs": [
+                {
+                    "groupId": 11,
+                    "relativeIndex": 0,
+                    "widgetType": 1
+                },
+                {
+                    "groupId": 11,
+                    "relativeIndex": 3,
+                    "widgetType": 9
+                },
+                {
+                    "groupId": 11,
+                    "relativeIndex": 4,
+                    "widgetType": 9
+                },
+                {
+                    "groupId": 11,
+                    "relativeIndex": 5,
+                    "widgetType": 9
+                },
+                {
+                    "groupId": 11,
+                    "relativeIndex": 6,
+                    "widgetType": 9
+                },
+                {
+                    "groupId": 11,
+                    "relativeIndex": 1,
+                    "widgetType": 10
+                },
+                {
+                    "groupId": 11,
+                    "relativeIndex": 2,
+                    "widgetType": 10
+                }
+            ],
+            "workspaceId": 1004
+        },
+        {
+            "title": "Controls",
+            "widgetRefs": [
+                {
+                    "groupId": 12,
+                    "relativeIndex": 0,
+                    "widgetType": 19
+                }
+            ],
+            "workspaceId": 1005
+        }
+    ],
     "writerVersion": "4.0.3",
     "writerVersionAtCreation": "4.0.3"
 }

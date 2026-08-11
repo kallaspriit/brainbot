@@ -46,4 +46,22 @@ class ServoCommands {
 
     void printServoInfo(uint8_t id);
     void printFeedback(uint8_t id);
+
+    /**
+     * Reads a single-byte register under the hardware lock.
+     *
+     * @param id  Servo ID.
+     * @param reg Register.
+     * @returns The value, or -1 if the servo did not answer.
+     */
+    int readByteLocked(uint8_t id, St3215::Register reg);
+
+    /**
+     * Reads a two-byte register under the hardware lock.
+     *
+     * @param id  Servo ID.
+     * @param reg Address of the low byte.
+     * @returns The value, or -1 if the servo did not answer.
+     */
+    int readWordLocked(uint8_t id, St3215::Register reg);
 };
