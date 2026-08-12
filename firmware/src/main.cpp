@@ -7,6 +7,7 @@
 #include "SwUartPioBus.hpp"
 #include "console/RigCommands.hpp"
 #include "console/ServoCommands.hpp"
+#include "control/controllers/CascadeBallBeamController.hpp"
 #include "control/controllers/PidBallBeamController.hpp"
 #include "hardware/BeamServo.hpp"
 #include "hardware/HardwareLock.hpp"
@@ -31,6 +32,7 @@ static RigCommands rigCommands(rig, telemetry, distanceSensor);
 // Control strategies, offered to the console by name. Adding another is a class
 // implementing BallBeamController plus one addController() call below.
 static PidBallBeamController pidController;
+static CascadeBallBeamController cascadeController;
 
 void setup() {
     Serial.begin(115200);
@@ -54,6 +56,7 @@ void setup() {
     }
 
     rigCommands.addController(&pidController);
+    rigCommands.addController(&cascadeController);
 
     servoCommands.registerCommands(console);
     rigCommands.registerCommands(console);

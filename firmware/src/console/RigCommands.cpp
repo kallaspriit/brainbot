@@ -1,6 +1,7 @@
 #include "console/RigCommands.hpp"
 
 #include <Arduino.h>
+#include <cstdlib>
 #include <cstring>
 
 #include "Config.hpp"
@@ -550,9 +551,11 @@ void RigCommands::registerCommands(SerialConsole& console) {
     });
 
     console.addCommand("est", "est [accel] [q] [gate]     - estimator tuning (omit to read)", [this](SerialConsole& c) {
-        const float accelPerDegree = c.nextFloat(0.0f);
+        // Presence of a token, not its value: zero is a meaningful setting here —
+        // it disables the tilt model — so it cannot double as "no argument".
+        const char* accelToken = c.nextToken();
 
-        if (accelPerDegree == 0.0f) {
+        if (accelToken == nullptr) {
             const BallEstimator::Params& params = system_.estimator().params();
             const BallBeamState state = system_.state();
 
@@ -567,6 +570,7 @@ void RigCommands::registerCommands(SerialConsole& console) {
             return;
         }
 
+        const float accelPerDegree = strtof(accelToken, nullptr);
         const float processNoise = c.nextFloat(system_.estimator().params().processNoiseMmPerS2);
         const float gate = c.nextFloat(system_.estimator().params().innovationGateSigma);
 

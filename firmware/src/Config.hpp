@@ -126,19 +126,27 @@ constexpr float kSensorNoiseQuadratic = 8.6e-5f;
 // Ball acceleration per degree of beam tilt, mm/s^2 per degree, signed so that
 // positive means the ball accelerates towards larger distance readings.
 //
-// Measured at 205 and 228 over two gated runs at 4 deg, with residuals of 8.4 mm
-// about the fit — matching the sensor's own noise, so the parabola is the right
-// model and the fit is sound.
+// Zero, which disables the tilt model and leaves a plain constant-velocity
+// filter — the standard, well-behaved baseline.
 //
-// Note this exceeds 171, the acceleration of a frictionless block on the same
-// incline, which nothing rolling can beat. Either the sensor's distance scale is
-// optimistic or something else is unaccounted for; a ruler check against known
-// positions would settle it.
+// The open-loop roll tests said 205-228, with residuals matching sensor noise, so
+// the fit itself was sound. But that exceeds 171, the acceleration of a
+// frictionless block on the same incline, which nothing rolling can beat; and in
+// closed loop the ball plainly accelerates far more slowly than 215 predicts. A
+// model that confident and that wrong is worse than no model: the filter cannot
+// reject it, so it carries a fictitious velocity instead, which a velocity-based
+// controller then faithfully regulates into a standing position error.
 //
-// Used as measured regardless, because the filter predicts in sensor units: if
-// the sensor says the ball accelerates this fast, that is what the predict step
-// has to reproduce to agree with the measurements it is corrected by.
-constexpr float kAccelPerDegree = 215.0f;
+// Closed-loop testing settled it: at a commanded and delivered -1.0 deg the ball
+// does not move at all. Static friction dominates below roughly a degree, so the
+// small-signal plant gain a regulator actually sees is near zero, and the roll
+// tests were measuring kinetic behaviour at 4 deg that says nothing about it.
+//
+// With the model at 100, the velocity loop reaches equilibrium where the filter's
+// phantom velocity equals the demanded velocity — the integral stops winding and
+// the ball parks short of target. Zero is not a workaround here, it is the
+// honest model for the regime this controller lives in.
+constexpr float kAccelPerDegree = 0.0f;
 
 // Acceleration the model does not account for: rolling friction, the ball
 // slipping rather than rolling, the beam flexing. Sets how quickly the filter is
@@ -199,6 +207,28 @@ constexpr float kPidKi = 0.0f; // degrees per mm-second
 // ball held against an endstop would otherwise wind this up without limit and
 // then take just as long to unwind once it came free.
 constexpr float kPidMaxIntegralDegrees = 2.0f;
+
+// --- Cascade controller ---
+
+// Outer loop: position error to a desired ball velocity, in 1/s. The ball then
+// approaches with a first-order time constant of 1/gain, so 0.7 settles in about
+// one and a half seconds.
+constexpr float kCascadePositionGain = 0.7f;
+
+// The point of the whole structure. A single PID answers a large setpoint change
+// with a large angle and the ball arrives carrying all the speed that built up on
+// the way; here the approach speed is simply capped, so it arrives at a rate the
+// inner loop can still stop.
+constexpr float kCascadeMaxVelocityMmPerSecond = 150.0f;
+
+// Inner loop: velocity error to beam angle, in degrees per mm/s. With ball
+// acceleration a = k * angle, a gain of g gives the velocity loop a time constant
+// of 1/(k*g) — about 0.3 s here, comfortably inside the outer loop's 1.4 s.
+constexpr float kCascadeVelocityGain = 0.015f;
+
+// Integral on the velocity loop, degrees per mm. Removes the standing angle bias
+// that the position loop would otherwise have to hold an error to generate.
+constexpr float kCascadeVelocityIntegral = 0.01f;
 
 // --- Beam geometry ---
 

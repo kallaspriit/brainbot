@@ -1170,12 +1170,12 @@
         "layout:5002": {
             "data": {
                 "autoLayout": true,
-                "canvasHeight": 1230,
+                "canvasHeight": 1182,
                 "canvasWidth": 2562,
                 "geometries": [
                     {
-                        "height": 615,
-                        "id": 18,
+                        "height": 591,
+                        "id": 19,
                         "relativeIndex": 0,
                         "state": "normal",
                         "widgetType": 10,
@@ -1184,7 +1184,7 @@
                         "y": 0
                     },
                     {
-                        "height": 615,
+                        "height": 591,
                         "id": 8,
                         "relativeIndex": 0,
                         "state": "normal",
@@ -1194,32 +1194,32 @@
                         "y": 0
                     },
                     {
-                        "height": 615,
+                        "height": 591,
                         "id": 3,
                         "relativeIndex": 1,
                         "state": "normal",
                         "widgetType": 2,
                         "width": 1281,
                         "x": 0,
-                        "y": 614
+                        "y": 590
                     },
                     {
-                        "height": 615,
-                        "id": 17,
-                        "relativeIndex": 9,
+                        "height": 591,
+                        "id": 18,
+                        "relativeIndex": 10,
                         "state": "normal",
                         "widgetType": 9,
                         "width": 1281,
                         "x": 1280,
-                        "y": 614
+                        "y": 590
                     }
                 ],
                 "userReordered": false,
                 "windowOrder": [
-                    18,
+                    19,
                     8,
                     3,
-                    17
+                    18
                 ],
                 "windowOrderTyped": [
                     {
@@ -1235,8 +1235,216 @@
                         "widgetType": 2
                     },
                     {
-                        "relativeIndex": 9,
+                        "relativeIndex": 10,
                         "widgetType": 9
+                    }
+                ]
+            }
+        },
+        "layout:5003": {
+            "data": {
+                "autoLayout": true,
+                "canvasHeight": 1182,
+                "canvasWidth": 2562,
+                "geometries": [
+                    {
+                        "height": 591,
+                        "id": 2,
+                        "relativeIndex": 0,
+                        "state": "normal",
+                        "widgetType": 2,
+                        "width": 1281,
+                        "x": 0,
+                        "y": 0
+                    },
+                    {
+                        "height": 591,
+                        "id": 22,
+                        "relativeIndex": 0,
+                        "state": "normal",
+                        "widgetType": 11,
+                        "width": 1281,
+                        "x": 1280,
+                        "y": 0
+                    },
+                    {
+                        "height": 591,
+                        "id": 9,
+                        "relativeIndex": 1,
+                        "state": "normal",
+                        "widgetType": 9,
+                        "width": 854,
+                        "x": 0,
+                        "y": 590
+                    },
+                    {
+                        "height": 591,
+                        "id": 10,
+                        "relativeIndex": 2,
+                        "state": "normal",
+                        "widgetType": 9,
+                        "width": 854,
+                        "x": 853,
+                        "y": 590
+                    },
+                    {
+                        "height": 591,
+                        "id": 6,
+                        "relativeIndex": 0,
+                        "state": "normal",
+                        "widgetType": 19,
+                        "width": 854,
+                        "x": 1706,
+                        "y": 590
+                    }
+                ],
+                "userReordered": false,
+                "windowOrder": [
+                    2,
+                    22,
+                    9,
+                    10,
+                    6
+                ],
+                "windowOrderTyped": [
+                    {
+                        "relativeIndex": 0,
+                        "widgetType": 2
+                    },
+                    {
+                        "relativeIndex": 0,
+                        "widgetType": 11
+                    },
+                    {
+                        "relativeIndex": 1,
+                        "widgetType": 9
+                    },
+                    {
+                        "relativeIndex": 2,
+                        "widgetType": 9
+                    },
+                    {
+                        "relativeIndex": 0,
+                        "widgetType": 19
+                    }
+                ]
+            }
+        },
+        "layout:5004": {
+            "data": {
+                "autoLayout": true,
+                "canvasHeight": 1182,
+                "canvasWidth": 2562,
+                "geometries": [
+                    {
+                        "height": 591,
+                        "id": 1,
+                        "relativeIndex": 0,
+                        "state": "normal",
+                        "widgetType": 1,
+                        "width": 641,
+                        "x": 0,
+                        "y": 0
+                    },
+                    {
+                        "height": 591,
+                        "id": 11,
+                        "relativeIndex": 3,
+                        "state": "normal",
+                        "widgetType": 9,
+                        "width": 641,
+                        "x": 640,
+                        "y": 0
+                    },
+                    {
+                        "height": 591,
+                        "id": 12,
+                        "relativeIndex": 4,
+                        "state": "normal",
+                        "widgetType": 9,
+                        "width": 640,
+                        "x": 1280,
+                        "y": 0
+                    },
+                    {
+                        "height": 591,
+                        "id": 13,
+                        "relativeIndex": 5,
+                        "state": "normal",
+                        "widgetType": 9,
+                        "width": 640,
+                        "x": 1919,
+                        "y": 0
+                    },
+                    {
+                        "height": 591,
+                        "id": 14,
+                        "relativeIndex": 6,
+                        "state": "normal",
+                        "widgetType": 9,
+                        "width": 854,
+                        "x": 0,
+                        "y": 590
+                    },
+                    {
+                        "height": 591,
+                        "id": 20,
+                        "relativeIndex": 1,
+                        "state": "normal",
+                        "widgetType": 10,
+                        "width": 854,
+                        "x": 853,
+                        "y": 590
+                    },
+                    {
+                        "height": 591,
+                        "id": 21,
+                        "relativeIndex": 2,
+                        "state": "normal",
+                        "widgetType": 10,
+                        "width": 854,
+                        "x": 1706,
+                        "y": 590
+                    }
+                ],
+                "userReordered": false,
+                "windowOrder": [
+                    1,
+                    11,
+                    12,
+                    13,
+                    14,
+                    20,
+                    21
+                ],
+                "windowOrderTyped": [
+                    {
+                        "relativeIndex": 0,
+                        "widgetType": 1
+                    },
+                    {
+                        "relativeIndex": 3,
+                        "widgetType": 9
+                    },
+                    {
+                        "relativeIndex": 4,
+                        "widgetType": 9
+                    },
+                    {
+                        "relativeIndex": 5,
+                        "widgetType": 9
+                    },
+                    {
+                        "relativeIndex": 6,
+                        "widgetType": 9
+                    },
+                    {
+                        "relativeIndex": 1,
+                        "widgetType": 10
+                    },
+                    {
+                        "relativeIndex": 2,
+                        "widgetType": 10
                     }
                 ]
             }
