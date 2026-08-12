@@ -81,6 +81,30 @@ void BallEstimator::predict(float dtSeconds, float beamAngleDegrees) {
     p01_ = p01 + variance * dt3 * 0.5f;
     p10_ = p10 + variance * dt3 * 0.5f;
     p11_ = p11 + variance * dt2;
+
+    constrainToBeam();
+}
+
+void BallEstimator::constrainToBeam() {
+    // The endstops are part of the plant and the model has no other way to learn
+    // about them. Without this the filter keeps accelerating a ball that has
+    // already stopped against the end, its prediction runs off the beam, the
+    // gate then rejects the measurements saying otherwise as outliers, and it
+    // only recovers when enough rejections in a row force a reinitialize — a
+    // sawtooth that repeats for as long as the beam stays tilted.
+    if (positionMm_ < (float)Config::kMinDistanceMm) {
+        positionMm_ = (float)Config::kMinDistanceMm;
+
+        if (velocityMmPerSecond_ < 0.0f) {
+            velocityMmPerSecond_ = 0.0f;
+        }
+    } else if (positionMm_ > (float)Config::kMaxDistanceMm) {
+        positionMm_ = (float)Config::kMaxDistanceMm;
+
+        if (velocityMmPerSecond_ > 0.0f) {
+            velocityMmPerSecond_ = 0.0f;
+        }
+    }
 }
 
 bool BallEstimator::correct(float measuredMm) {

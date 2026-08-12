@@ -27,12 +27,9 @@ class BallRollTest {
      * @param angleDegrees Tilt to hold; larger gives a cleaner fit but less
      *                     time before the ball reaches the end.
      * @param durationMs   How long to record for.
-     * @param settleMs     Samples in this initial window are discarded, so that
-     *                     stiction before the ball breaks away does not drag the
-     *                     fitted acceleration down.
      * @param nowMs        Current time.
      */
-    void start(float angleDegrees, unsigned long durationMs, unsigned long settleMs, unsigned long nowMs);
+    void start(float angleDegrees, unsigned long durationMs, unsigned long nowMs);
 
     /**
      * Advances the run. Call once per control tick.
@@ -67,6 +64,16 @@ class BallRollTest {
      */
     void report(Print& out) const;
 
+    /**
+     * Prints every recorded sample as raw time and distance pairs.
+     *
+     * The fitted constant has repeatedly disagreed with what the plots show, and
+     * a fit is only as good as what went into it. This prints what went into it.
+     *
+     * @param out Stream to print to.
+     */
+    void dumpSamples(Print& out) const;
+
   private:
     enum class State {
         Idle,
@@ -79,7 +86,13 @@ class BallRollTest {
     float angleDegrees_ = 0.0f;
     unsigned long startMs_ = 0;
     unsigned long durationMs_ = 0;
-    unsigned long settleMs_ = 0;
+
+    // The fit begins when the ball has actually moved, not when a timer expires.
+    float referenceMm_ = 0.0f;
+    bool hasReference_ = false;
+    bool isTriggered_ = false;
+    unsigned long triggerTimestampMs_ = 0;
+    unsigned long triggerDelayMs_ = 0;
 
     // Normal-equation sums for a least-squares quadratic fit of position against
     // time. Doubles because the fourth power of the time span, summed over a few
@@ -89,6 +102,7 @@ class BallRollTest {
     double sumT3_ = 0.0;
     double sumT4_ = 0.0;
     double sumY_ = 0.0;
+    double sumY2_ = 0.0;
     double sumTy_ = 0.0;
     double sumT2y_ = 0.0;
 
@@ -96,4 +110,12 @@ class BallRollTest {
     uint32_t rejectedCount_ = 0;
     float firstMm_ = 0.0f;
     float lastMm_ = 0.0f;
+
+    // Recorded so the fit can be checked against its own input. A roll lasts
+    // under two seconds at 27 Hz, so this holds a whole run comfortably.
+    static constexpr size_t kMaxSamples = 96;
+
+    uint16_t sampleTimeMs_[kMaxSamples] = {};
+    uint16_t sampleDistanceMm_[kMaxSamples] = {};
+    size_t storedCount_ = 0;
 };

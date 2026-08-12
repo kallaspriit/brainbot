@@ -28,6 +28,16 @@ class RigCommands {
     }
 
     /**
+     * Makes a control strategy selectable by name from the console.
+     *
+     * Registration rather than a hard-coded list, so adding a strategy is a line
+     * in main() and nothing here changes.
+     *
+     * @param controller Strategy to offer.
+     */
+    void addController(BallBeamController* controller);
+
+    /**
      * Registers every rig command.
      *
      * @param console Console to register with.
@@ -35,7 +45,12 @@ class RigCommands {
     void registerCommands(SerialConsole& console);
 
   private:
+    static constexpr size_t kMaxControllers = 6;
+
     BallBeamSystem& system_;
     TelemetryStream& telemetry_;
     Vl53l0xBallSensor& sensor_;
+
+    BallBeamController* controllers_[kMaxControllers] = {};
+    size_t controllerCount_ = 0;
 };

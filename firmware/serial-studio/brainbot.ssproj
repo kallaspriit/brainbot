@@ -326,6 +326,132 @@
             "title": "Output Controls",
             "uniqueId": 12,
             "widget": ""
+        },
+        {
+            "datasets": [
+                {
+                    "datasetId": 0,
+                    "displayFormat": "1d",
+                    "displayTickCount": 5,
+                    "fft": false,
+                    "fftMax": 0,
+                    "fftMin": 0,
+                    "fftSamples": 1024,
+                    "fftSamplingRate": 33,
+                    "fftWindow": 5,
+                    "graph": true,
+                    "groupId": 4,
+                    "index": 1,
+                    "led": false,
+                    "ledHigh": 1,
+                    "log": false,
+                    "numericValue": 0,
+                    "plotMax": 0,
+                    "plotMin": 0,
+                    "title": "Measured",
+                    "uniqueId": 15,
+                    "units": "mm",
+                    "value": "",
+                    "widget": "",
+                    "widgetMax": 600,
+                    "widgetMin": 0,
+                    "xAxis": -2
+                },
+                {
+                    "datasetId": 1,
+                    "displayFormat": "1d",
+                    "displayTickCount": 5,
+                    "fft": false,
+                    "fftMax": 0,
+                    "fftMin": 0,
+                    "fftSamples": 1024,
+                    "fftSamplingRate": 33,
+                    "fftWindow": 5,
+                    "graph": true,
+                    "groupId": 4,
+                    "index": 10,
+                    "led": false,
+                    "ledHigh": 1,
+                    "log": false,
+                    "numericValue": 0,
+                    "plotMax": 0,
+                    "plotMin": 0,
+                    "title": "Estimated",
+                    "uniqueId": 16,
+                    "units": "mm",
+                    "value": "",
+                    "widget": "",
+                    "widgetMax": 600,
+                    "widgetMin": 0,
+                    "xAxis": -2
+                },
+                {
+                    "datasetId": 2,
+                    "displayFormat": "1d",
+                    "displayTickCount": 5,
+                    "fft": false,
+                    "fftMax": 0,
+                    "fftMin": 0,
+                    "fftSamples": 1024,
+                    "fftSamplingRate": 33,
+                    "fftWindow": 5,
+                    "graph": true,
+                    "groupId": 4,
+                    "index": 12,
+                    "led": false,
+                    "ledHigh": 1,
+                    "log": false,
+                    "numericValue": 0,
+                    "plotMax": 0,
+                    "plotMin": 0,
+                    "title": "Target",
+                    "uniqueId": 19,
+                    "units": "mm",
+                    "value": "",
+                    "widget": "",
+                    "widgetMax": 600,
+                    "widgetMin": 0,
+                    "xAxis": -2
+                }
+            ],
+            "title": "Ball Estimate",
+            "uniqueId": 14,
+            "widget": "multiplot"
+        },
+        {
+            "datasets": [
+                {
+                    "datasetId": 0,
+                    "displayFormat": "1d",
+                    "displayTickCount": 5,
+                    "fft": false,
+                    "fftMax": 0,
+                    "fftMin": 0,
+                    "fftSamples": 1024,
+                    "fftSamplingRate": 33,
+                    "fftWindow": 5,
+                    "graph": true,
+                    "groupId": 5,
+                    "index": 11,
+                    "led": false,
+                    "ledHigh": 1,
+                    "log": false,
+                    "numericValue": 0,
+                    "plotMax": 0,
+                    "plotMin": 0,
+                    "title": "Estimated Velocity",
+                    "uniqueId": 18,
+                    "units": "mm/s",
+                    "value": "",
+                    "widget": "",
+                    "widgetMax": 800,
+                    "widgetMin": -800,
+                    "xAxis": -2
+                }
+            ],
+            "title": "Ball Velocity",
+            "uniqueId": 17,
+            "widget": ""
         }
     ],
     "hexadecimalDelimiters": false,
@@ -350,7 +476,7 @@
         "sslProtocol": 5,
         "topicBase": ""
     },
-    "nextUniqueId": 14,
+    "nextUniqueId": 20,
     "plotTimeRange": 10,
     "pointCount": 4000,
     "schemaVersion": 3,
@@ -372,7 +498,7 @@
             "decoderMethod": 0,
             "frameDetection": 1,
             "frameEnd": ";",
-            "frameParserCode": "/**\n * Splits a Brainbot telemetry frame into its fields.\n *\n * The firmware sends \"$distance,beamAngle,targetAngle,position,speed,load,\n * current,voltage,temperature;\" once every 30 ms while \"debug on\" is active.\n * Everything outside the $ ... ; delimiters is console text and is ignored.\n *\n * @param[in]  frame   The frame body, without the delimiters.\n * @return     An array of strings, one per dataset index.\n */\nfunction parse(frame) {\n    return frame.split(',');\n}\n",
+            "frameParserCode": "/**\n * Splits a Brainbot telemetry frame into its fields.\n *\n * The firmware sends \"$distance,beamAngle,targetAngle,position,speed,load,\n * current,voltage,temperature,estPosition,estVelocity;\" while \"debug on\" is\n * active, at the rate set by \"debugrate\".\n * Everything outside the $ ... ; delimiters is console text and is ignored.\n *\n * @param[in]  frame   The frame body, without the delimiters.\n * @return     An array of strings, one per dataset index.\n */\nfunction parse(frame) {\n    return frame.split(',');\n}\n",
             "frameStart": "$",
             "hexadecimalDelimiters": false,
             "sourceId": 0,
@@ -389,6 +515,12 @@
         "Brainbot Ball & Beam/Control Loop": false,
         "Brainbot Ball & Beam/Dashboard Widgets": true,
         "Brainbot Ball & Beam/Dashboard Widgets/Ball": true,
+        "Brainbot Ball & Beam/Dashboard Widgets/Ball Estimate": true,
+        "Brainbot Ball & Beam/Dashboard Widgets/Ball Estimate/Estimated": false,
+        "Brainbot Ball & Beam/Dashboard Widgets/Ball Estimate/Measured": false,
+        "Brainbot Ball & Beam/Dashboard Widgets/Ball Estimate/Target": false,
+        "Brainbot Ball & Beam/Dashboard Widgets/Ball Velocity": true,
+        "Brainbot Ball & Beam/Dashboard Widgets/Ball Velocity/Estimated Velocity": false,
         "Brainbot Ball & Beam/Dashboard Widgets/Ball/Ball Distance": false,
         "Brainbot Ball & Beam/Dashboard Widgets/Beam": true,
         "Brainbot Ball & Beam/Dashboard Widgets/Beam Servo": true,
@@ -434,7 +566,10 @@
             "userShowXLabel": true,
             "userShowYLabel": true
         },
-        "activeGroup": 1003,
+        "2:4:-1": {
+            "visibleCurves": null
+        },
+        "activeGroup": 5002,
         "externalWindows": {
             "data": [
             ]
@@ -739,11 +874,11 @@
         "layout:1003": {
             "data": {
                 "autoLayout": true,
-                "canvasHeight": 1232,
+                "canvasHeight": 1230,
                 "canvasWidth": 2562,
                 "geometries": [
                     {
-                        "height": 616,
+                        "height": 615,
                         "id": 2,
                         "relativeIndex": 0,
                         "state": "normal",
@@ -753,7 +888,7 @@
                         "y": 0
                     },
                     {
-                        "height": 616,
+                        "height": 615,
                         "id": 17,
                         "relativeIndex": 0,
                         "state": "normal",
@@ -763,24 +898,34 @@
                         "y": 0
                     },
                     {
-                        "height": 616,
+                        "height": 615,
                         "id": 8,
                         "relativeIndex": 1,
                         "state": "normal",
                         "widgetType": 9,
-                        "width": 1281,
+                        "width": 854,
                         "x": 0,
-                        "y": 615
+                        "y": 614
                     },
                     {
-                        "height": 616,
+                        "height": 615,
                         "id": 9,
                         "relativeIndex": 2,
                         "state": "normal",
                         "widgetType": 9,
-                        "width": 1281,
-                        "x": 1280,
-                        "y": 615
+                        "width": 854,
+                        "x": 853,
+                        "y": 614
+                    },
+                    {
+                        "height": 615,
+                        "id": 5,
+                        "relativeIndex": 0,
+                        "state": "normal",
+                        "widgetType": 19,
+                        "width": 854,
+                        "x": 1706,
+                        "y": 614
                     }
                 ],
                 "userReordered": false,
@@ -788,7 +933,8 @@
                     2,
                     17,
                     8,
-                    9
+                    9,
+                    5
                 ],
                 "windowOrderTyped": [
                     {
@@ -806,6 +952,10 @@
                     {
                         "relativeIndex": 2,
                         "widgetType": 9
+                    },
+                    {
+                        "relativeIndex": 0,
+                        "widgetType": 19
                     }
                 ]
             }
@@ -957,6 +1107,139 @@
                     }
                 ]
             }
+        },
+        "layout:5000": {
+            "data": {
+                "autoLayout": true,
+                "canvasHeight": 1230,
+                "canvasWidth": 2562,
+                "geometries": [
+                    {
+                        "height": 1230,
+                        "id": 2,
+                        "relativeIndex": 0,
+                        "state": "normal",
+                        "widgetType": 2,
+                        "width": 1281,
+                        "x": 0,
+                        "y": 0
+                    },
+                    {
+                        "height": 615,
+                        "id": 1,
+                        "relativeIndex": 0,
+                        "state": "normal",
+                        "widgetType": 1,
+                        "width": 1282,
+                        "x": 1280,
+                        "y": 0
+                    },
+                    {
+                        "height": 615,
+                        "id": 6,
+                        "relativeIndex": 0,
+                        "state": "normal",
+                        "widgetType": 19,
+                        "width": 1282,
+                        "x": 1280,
+                        "y": 614
+                    }
+                ],
+                "userReordered": false,
+                "windowOrder": [
+                    2,
+                    1,
+                    6
+                ],
+                "windowOrderTyped": [
+                    {
+                        "relativeIndex": 0,
+                        "widgetType": 2
+                    },
+                    {
+                        "relativeIndex": 0,
+                        "widgetType": 1
+                    },
+                    {
+                        "relativeIndex": 0,
+                        "widgetType": 19
+                    }
+                ]
+            }
+        },
+        "layout:5002": {
+            "data": {
+                "autoLayout": true,
+                "canvasHeight": 1230,
+                "canvasWidth": 2562,
+                "geometries": [
+                    {
+                        "height": 615,
+                        "id": 18,
+                        "relativeIndex": 0,
+                        "state": "normal",
+                        "widgetType": 10,
+                        "width": 1281,
+                        "x": 0,
+                        "y": 0
+                    },
+                    {
+                        "height": 615,
+                        "id": 8,
+                        "relativeIndex": 0,
+                        "state": "normal",
+                        "widgetType": 9,
+                        "width": 1281,
+                        "x": 1280,
+                        "y": 0
+                    },
+                    {
+                        "height": 615,
+                        "id": 3,
+                        "relativeIndex": 1,
+                        "state": "normal",
+                        "widgetType": 2,
+                        "width": 1281,
+                        "x": 0,
+                        "y": 614
+                    },
+                    {
+                        "height": 615,
+                        "id": 17,
+                        "relativeIndex": 9,
+                        "state": "normal",
+                        "widgetType": 9,
+                        "width": 1281,
+                        "x": 1280,
+                        "y": 614
+                    }
+                ],
+                "userReordered": false,
+                "windowOrder": [
+                    18,
+                    8,
+                    3,
+                    17
+                ],
+                "windowOrderTyped": [
+                    {
+                        "relativeIndex": 0,
+                        "widgetType": 10
+                    },
+                    {
+                        "relativeIndex": 0,
+                        "widgetType": 9
+                    },
+                    {
+                        "relativeIndex": 1,
+                        "widgetType": 2
+                    },
+                    {
+                        "relativeIndex": 9,
+                        "widgetType": 9
+                    }
+                ]
+            }
         }
     },
     "workspaces": [
@@ -980,7 +1263,7 @@
                     "widgetType": 19
                 }
             ],
-            "workspaceId": 1000
+            "workspaceId": 5000
         },
         {
             "icon": "qrc:/icons/panes/dashboard.svg",
@@ -1055,9 +1338,19 @@
                     "groupId": 12,
                     "relativeIndex": 0,
                     "widgetType": 19
+                },
+                {
+                    "groupId": 14,
+                    "relativeIndex": 1,
+                    "widgetType": 2
+                },
+                {
+                    "groupId": 17,
+                    "relativeIndex": 10,
+                    "widgetType": 9
                 }
             ],
-            "workspaceId": 1001
+            "workspaceId": 5001
         },
         {
             "title": "Ball",
@@ -1071,9 +1364,19 @@
                     "groupId": 9,
                     "relativeIndex": 0,
                     "widgetType": 9
+                },
+                {
+                    "groupId": 14,
+                    "relativeIndex": 1,
+                    "widgetType": 2
+                },
+                {
+                    "groupId": 17,
+                    "relativeIndex": 10,
+                    "widgetType": 9
                 }
             ],
-            "workspaceId": 1002
+            "workspaceId": 5002
         },
         {
             "title": "Beam",
@@ -1104,7 +1407,7 @@
                     "widgetType": 19
                 }
             ],
-            "workspaceId": 1003
+            "workspaceId": 5003
         },
         {
             "title": "Beam Servo",
@@ -1145,7 +1448,7 @@
                     "widgetType": 10
                 }
             ],
-            "workspaceId": 1004
+            "workspaceId": 5004
         },
         {
             "title": "Controls",
@@ -1156,7 +1459,7 @@
                     "widgetType": 19
                 }
             ],
-            "workspaceId": 1005
+            "workspaceId": 5005
         }
     ],
     "writerVersion": "4.0.3",

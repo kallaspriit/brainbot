@@ -40,7 +40,127 @@ bool parseOnOff(SerialConsole& console, bool& target) {
 
 } // namespace
 
+void RigCommands::addController(BallBeamController* controller) {
+    if (controller == nullptr || controllerCount_ >= kMaxControllers) {
+        return;
+    }
+
+    controllers_[controllerCount_++] = controller;
+}
+
 void RigCommands::registerCommands(SerialConsole& console) {
+    console.addCommand("ctrl", "ctrl [name|off]            - install a control strategy (omit to list)", [this](SerialConsole& c) {
+        const char* token = c.nextToken();
+
+        if (token == nullptr) {
+            Serial << "controllers:";
+
+            for (size_t i = 0; i < controllerCount_; i++) {
+                Serial << " " << controllers_[i]->name();
+            }
+
+            Serial << endl;
+            Serial << "active: " << (system_.controller() != nullptr ? system_.controller()->name() : "none (open loop)") << ", target " << system_.target() << " mm" << endl;
+
+            return;
+        }
+
+        if (strcmp(token, "off") == 0) {
+            system_.setController(nullptr);
+
+            {
+                const HardwareLock lock;
+
+                system_.beam().setAngle(0.0f);
+            }
+
+            Serial << "controller off, beam levelled" << endl;
+
+            return;
+        }
+
+        for (size_t i = 0; i < controllerCount_; i++) {
+            if (strcmp(token, controllers_[i]->name()) != 0) {
+                continue;
+            }
+
+            // Stop any open-loop test first, or the tick keeps overruling the
+            // controller and it looks broken.
+            {
+                const HardwareLock lock;
+
+                system_.motionTest().stop();
+            }
+
+            system_.setController(controllers_[i]);
+
+            Serial << "controller " << controllers_[i]->name() << ", target " << system_.target() << " mm" << endl;
+
+            return;
+        }
+
+        Serial << "unknown controller '" << token << "'" << endl;
+    });
+
+    console.addCommand("params", "params                     - list the active controller's gains", [this](SerialConsole&) {
+        BallBeamController* controller = system_.controller();
+
+        if (controller == nullptr) {
+            Serial << "no controller installed" << endl;
+
+            return;
+        }
+
+        Serial << controller->name() << ":" << endl;
+
+        for (size_t i = 0; i < controller->paramCount(); i++) {
+            const ControllerParam entry = controller->param(i);
+
+            if (entry.name != nullptr && entry.value != nullptr) {
+                Serial << "  " << entry.name << " = " << *entry.value << endl;
+            }
+        }
+    });
+
+    console.addCommand("set", "set <name> <value>         - change a gain on the active controller", [this](SerialConsole& c) {
+        const char* token = c.nextToken();
+
+        if (token == nullptr) {
+            Serial << "usage: set <name> <value>" << endl;
+
+            return;
+        }
+
+        const float value = c.nextFloat(0.0f);
+        BallBeamController* controller = system_.controller();
+
+        if (controller == nullptr) {
+            Serial << "no controller installed" << endl;
+
+            return;
+        }
+
+        for (size_t i = 0; i < controller->paramCount(); i++) {
+            const ControllerParam entry = controller->param(i);
+
+            if (entry.name == nullptr || entry.value == nullptr || strcmp(token, entry.name) != 0) {
+                continue;
+            }
+
+            {
+                const HardwareLock lock;
+
+                *entry.value = value;
+            }
+
+            Serial << entry.name << " = " << value << endl;
+
+            return;
+        }
+
+        Serial << "unknown parameter '" << token << "'" << endl;
+    });
+
     console.addCommand("debug", "debug <on|off>             - stream telemetry frames for Serial Studio", [this](SerialConsole& c) {
         bool isEnabled = telemetry_.isEnabled();
 
@@ -212,10 +332,12 @@ void RigCommands::registerCommands(SerialConsole& console) {
             return;
         }
 
+        // Frames would interleave with the report and confuse Serial Studio's
+        // frame reader, and the console is blocked for the run anyway. Left off
+        // afterwards too: resuming at 30-plus frames a second scrolls the result
+        // off the console before it can be read.
         const bool wasStreaming = telemetry_.isEnabled();
 
-        // Frames would interleave with the report and confuse Serial Studio's
-        // frame reader, and the console is blocked for the run anyway.
         telemetry_.setEnabled(false);
 
         {
@@ -252,7 +374,9 @@ void RigCommands::registerCommands(SerialConsole& console) {
 
         system_.noiseTest().report(Serial, budgetUs);
 
-        telemetry_.setEnabled(wasStreaming);
+        if (wasStreaming) {
+            Serial << "(debug left off so this stays readable - 'debug on' to resume)" << endl;
+        }
     });
 
     console.addCommand("budget", "budget [us]                - sensor integration time (omit to read)", [this](SerialConsole& c) {
@@ -361,9 +485,10 @@ void RigCommands::registerCommands(SerialConsole& console) {
         }
     });
 
-    console.addCommand("rolltest", "rolltest <deg> [ms]        - measure ball accel per degree of tilt", [this](SerialConsole& c) {
+    console.addCommand("rolltest", "rolltest <deg> [ms] [dump] - measure ball accel per degree of tilt", [this](SerialConsole& c) {
         const float degrees = c.nextFloat(0.0f);
         const int durationMs = c.nextInt(1500);
+        const int shouldDump = c.nextInt(0);
 
         if (degrees == 0.0f || durationMs < 300) {
             Serial << "usage: rolltest <deg> [ms >= 300]  (put the ball at the uphill end first)" << endl;
@@ -386,16 +511,21 @@ void RigCommands::registerCommands(SerialConsole& console) {
 
             system_.beam().enable();
             system_.motionTest().stop();
-            system_.rollTest().start(degrees, (unsigned long)durationMs, 250, millis());
+            system_.rollTest().start(degrees, (unsigned long)durationMs, millis());
         }
 
         Serial << "rolling at " << degrees << " deg for " << durationMs << " ms" << endl;
 
-        const unsigned long deadlineMs = millis() + (unsigned long)durationMs + 2000;
+        // Allows for the wait before the ball breaks away, which is not part of
+        // the recording window.
+        const unsigned long deadlineMs = millis() + (unsigned long)durationMs + Config::kRollTriggerWaitMs + 2000;
 
         while (!system_.rollTest().isComplete() && millis() < deadlineMs) {
             delay(20);
         }
+
+        // Read the outcome before touching the test, then level the beam.
+        const bool isComplete = system_.rollTest().isComplete();
 
         {
             const HardwareLock lock;
@@ -404,13 +534,19 @@ void RigCommands::registerCommands(SerialConsole& console) {
             system_.beam().setAngle(0.0f);
         }
 
-        if (!system_.rollTest().isComplete()) {
+        if (!isComplete) {
             Serial << "timed out - is the control loop running on core 1?" << endl;
         } else {
             system_.rollTest().report(Serial);
+
+            if (shouldDump != 0) {
+                system_.rollTest().dumpSamples(Serial);
+            }
         }
 
-        telemetry_.setEnabled(wasStreaming);
+        if (wasStreaming) {
+            Serial << "(debug left off so this stays readable - 'debug on' to resume)" << endl;
+        }
     });
 
     console.addCommand("est", "est [accel] [q] [gate]     - estimator tuning (omit to read)", [this](SerialConsole& c) {
@@ -424,6 +560,7 @@ void RigCommands::registerCommands(SerialConsole& console) {
             Serial << "process noise     " << params.processNoiseMmPerS2 << " mm/s^2" << endl;
             Serial << "sensor sigma      " << params.sensorNoiseBaseMm << " + " << params.sensorNoiseQuadratic << " * d^2  (" << system_.estimator().sensorSigmaAt(state.positionMm) << " mm here)" << endl;
             Serial << "innovation gate   " << params.innovationGateSigma << " sigma, " << system_.estimator().consecutiveRejects() << " rejected in a row" << endl;
+            Serial << "filter            " << (system_.estimator().isInitialized() ? "running" : "NOT INITIALIZED") << ", last measurement " << system_.millisSinceMeasurement() << " ms ago" << endl;
             Serial << "estimate          " << state.positionMm << " +-" << system_.estimator().positionSigmaMm() << " mm, " << state.velocityMmPerSecond << " +-"
                    << system_.estimator().velocitySigmaMmPerS() << " mm/s" << endl;
 

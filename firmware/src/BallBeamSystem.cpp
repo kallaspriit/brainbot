@@ -71,21 +71,37 @@ void BallBeamSystem::tick() {
         estimator_.correct((float)newMeasurement->distanceMm);
     }
 
-    const bool isStale = !hasPosition_ || !estimator_.isInitialized() || (nowMs - lastValidMeasurementMs_) > kMeasurementTimeoutMs;
+    // Staleness is about the measurements, and nothing else. Including the
+    // filter's own initialized flag here made the test self-reinforcing: a reset
+    // clears that flag, which makes the next tick stale, which resets again. The
+    // filter could then only escape on a tick that happened to carry a
+    // measurement, so the estimate alternated between correct and zero.
+    // Signed difference, deliberately. nowMs is sampled at the top of the tick
+    // but pollSensor() stamps the measurement a millisecond or so later, once the
+    // I2C read completes — so the measurement can be fractionally newer than
+    // "now". Unsigned arithmetic turns that into an age of four billion
+    // milliseconds and declares a perfectly live sensor stale.
+    const long measurementAgeMs = (long)(nowMs - lastValidMeasurementMs_);
+    const bool isStale = !hasPosition_ || measurementAgeMs > (long)kMeasurementTimeoutMs;
 
-    state_.positionMm = estimator_.positionMm();
-    state_.velocityMmPerSecond = isStale ? 0.0f : estimator_.velocityMmPerSecond();
-    state_.targetMm = targetMm_;
-    state_.beamAngleDegrees = beamAngleDegrees;
-    state_.dtSeconds = dtSeconds;
-    state_.isValid = !isStale;
-
-    if (isStale) {
+    if (isStale && estimator_.isInitialized()) {
         // Position unknown for long enough that the estimate is fiction. Drop it
         // so the filter restarts clean when the ball reappears rather than
         // integrating a stale velocity onwards.
         estimator_.reset();
     }
+
+    const bool hasEstimate = estimator_.isInitialized();
+
+    // Falls back to the raw reading rather than to zero, so a filter that is not
+    // running yet shows the ball where it actually is instead of putting a
+    // spike through the plots and any controller reading this.
+    state_.positionMm = hasEstimate ? estimator_.positionMm() : lastRawDistanceMm_;
+    state_.velocityMmPerSecond = (hasEstimate && !isStale) ? estimator_.velocityMmPerSecond() : 0.0f;
+    state_.targetMm = targetMm_;
+    state_.beamAngleDegrees = beamAngleDegrees;
+    state_.dtSeconds = dtSeconds;
+    state_.isValid = hasEstimate && !isStale;
 
     // A relaxed beam is not commanded at all. Writing a goal position to a servo
     // with torque off would leave it queued, and the beam would snap there the
@@ -113,12 +129,28 @@ void BallBeamSystem::tick() {
     snapshot_.targetAngleDegrees = beam_.targetAngle();
     snapshot_.estimatedPositionMm = state_.positionMm;
     snapshot_.estimatedVelocityMmPerSecond = state_.velocityMmPerSecond;
+    snapshot_.targetMm = targetMm_;
 }
 
 void BallBeamSystem::snapshot(TelemetrySnapshot& out) const {
     const HardwareLock lock;
 
     out = snapshot_;
+}
+
+unsigned long BallBeamSystem::millisSinceMeasurement() const {
+    const HardwareLock lock;
+
+    if (!hasPosition_) {
+        return 0;
+    }
+
+    // Same signed-difference reasoning as in tick(): a measurement stamped a
+    // moment after the caller read the clock must read as age zero, not as a
+    // wrapped-around eternity.
+    const long ageMs = (long)(millis() - lastValidMeasurementMs_);
+
+    return ageMs > 0 ? (unsigned long)ageMs : 0;
 }
 
 BallBeamState BallBeamSystem::state() const {

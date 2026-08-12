@@ -16,6 +16,21 @@ telemetry the firmware emits while `debug on` is active.
 The beam boots relaxed and takes torque only when something asks it to move, so
 `angle 0` or any test command is what wakes it up.
 
+Serial Studio's console shows every incoming byte and has no way to filter frames
+out of it — its toolbar offers only a Text/Hex toggle. A command's reply therefore
+scrolls away within a frame or two while `debug` is on, so use `debug off` when you
+need to read output. `noisetest` and `rolltest` do this for you and leave it off,
+since their reports run to dozens of lines.
+
+## Balancing
+
+| Command | What it does |
+| ------- | ------------ |
+| `ctrl [name\|off]` | Installs a control strategy, or lists what is available. `off` levels the beam. |
+| `target <mm>` | Where the ball should be held. |
+| `params` | Lists the active controller's gains. |
+| `set <name> <value>` | Changes one, live. Tuning a ball & beam takes dozens of small adjustments; a reflash between each is the difference between an evening and a week. |
+
 ## Characterization commands
 
 | Command | What it is for |
@@ -40,7 +55,7 @@ The firmware prints one frame every 30 ms (~33 Hz) by default, adjustable with
 `debugrate`:
 
 ```
-$<distance>,<beamAngle>,<targetAngle>,<position>,<speed>,<load>,<current>,<voltage>,<temperature>;
+$<distance>,<beamAngle>,<targetAngle>,<position>,<speed>,<load>,<current>,<voltage>,<temperature>,<estPosition>,<estVelocity>,<target>;
 ```
 
 Serial Studio is configured for *start + end delimiter* framing with `$` and `;`, plain
@@ -61,11 +76,13 @@ interactive console keeps working while frames stream.
 | 9     | Temperature   | C       | Servo case temperature                        |
 | 10    | Est. position | mm      | Kalman-filtered ball position                 |
 | 11    | Est. velocity | mm/s    | Kalman-filtered ball velocity, + away from sensor |
+| 12    | Target        | mm      | Where the controller is holding the ball          |
 
-Fields 10 and 11 were added after `brainbot.ssproj` was written. Serial Studio maps
-datasets by index, so the existing nine keep working untouched — add two datasets
-pointing at indexes 10 and 11 to plot the estimate against the raw distance in
-field 1, which is the quickest way to see whether the filter is doing its job.
+Fields 10-12 were added after the first nine and are plotted by the *Ball Estimate*
+and *Ball Velocity* groups. Serial Studio maps datasets by index, so appending fields
+never disturbs the existing ones — but note that `widgetRefs` addresses widgets by a
+*global* per-type counter, so inserting a dataset anywhere but the end silently
+renumbers every widget reference after it.
 
 Fields 2-9 come from a single bulk read of the beam servo (`Config::kBeamServoId`),
 refreshed once per control tick (100 Hz) on core 1. If that read fails, the previous

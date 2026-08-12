@@ -57,6 +57,23 @@ constexpr uint8_t kBeamServoKi = 0;
 // a third of the loop gain right at the operating point.
 constexpr uint8_t kBeamServoDeadband = 0;
 
+// Real beam degrees per nominal degree of servo travel, where nominal assumes
+// the encoder's 4096 counts span a full revolution.
+//
+// Measured with a digital inclinometer: commanding 4 deg gives 3.65, and -4 gives
+// -3.75. Symmetric about zero, so this is a scale error and not a zero offset —
+// 0.925 * 360 = 333 deg, which suggests the counts do not span a revolution the
+// way the datasheet implies. Worth re-checking at +-10 deg, where the meter's own
+// absolute error matters proportionally less.
+constexpr float kBeamAngleScale = 0.925f;
+
+// Servo angle at which the beam is actually level, in real degrees.
+//
+// Measured with a digital inclinometer across nine commanded angles from -4 to
+// +4: actual = 1.017 * commanded - 0.206. The slope is within measurement error
+// of 1.0, so the scale above is right, but the offset is consistent and real.
+constexpr float kBeamTrimDegrees = 0.2f;
+
 // Beam angles beyond this are clamped. The controller never needs more than a
 // few degrees, so this is a backstop against a runaway command dumping the ball
 // off the end or driving the beam into the bench.
@@ -109,10 +126,19 @@ constexpr float kSensorNoiseQuadratic = 8.6e-5f;
 // Ball acceleration per degree of beam tilt, mm/s^2 per degree, signed so that
 // positive means the ball accelerates towards larger distance readings.
 //
-// Theory gives about 110 for a ball rolling without slipping. "rolltest"
-// measures it on the actual rig, including the sign, which depends on how the
-// servo happens to be mounted and is not worth guessing.
-constexpr float kAccelPerDegree = 110.0f;
+// Measured at 205 and 228 over two gated runs at 4 deg, with residuals of 8.4 mm
+// about the fit — matching the sensor's own noise, so the parabola is the right
+// model and the fit is sound.
+//
+// Note this exceeds 171, the acceleration of a frictionless block on the same
+// incline, which nothing rolling can beat. Either the sensor's distance scale is
+// optimistic or something else is unaccounted for; a ruler check against known
+// positions would settle it.
+//
+// Used as measured regardless, because the filter predicts in sensor units: if
+// the sensor says the ball accelerates this fast, that is what the predict step
+// has to reproduce to agree with the measurements it is corrected by.
+constexpr float kAccelPerDegree = 215.0f;
 
 // Acceleration the model does not account for: rolling friction, the ball
 // slipping rather than rolling, the beam flexing. Sets how quickly the filter is
@@ -131,6 +157,48 @@ constexpr uint8_t kMaxConsecutiveRejects = 6;
 
 // Initial velocity uncertainty when the filter starts or restarts.
 constexpr float kInitialVelocitySigmaMmPerS = 300.0f;
+
+// How far the ball must move from where it started before "rolltest" begins
+// fitting. A timed settle window cannot do this job: it skips stiction but not
+// the sensor's near-range floor, where readings stay pinned at ~35 mm while the
+// ball is already moving. Fitting that flat stretch trades the acceleration away
+// against a fictitious initial velocity.
+constexpr float kRollTriggerMm = 25.0f;
+
+// Give up if the ball has not moved within this long — the beam may be level, or
+// the ball may not be on it.
+constexpr unsigned long kRollTriggerWaitMs = 3000;
+
+// The roll fit stops here rather than following the ball to the endstop.
+//
+// Past roughly this distance the sensor stops measuring the ball. Its return
+// falls off as 1/d^2 and the 25 degree cone also contains the rails and the far
+// endstop, whose returns sit near 600 mm — so the readings run ahead of the ball
+// and the apparent acceleration climbs with distance, which a constant tilt
+// cannot produce. Fitting that region inflated the constant past the acceleration
+// of a frictionless block on the same incline.
+constexpr float kRollMaxFitMm = 350.0f;
+
+// --- PID controller ---
+
+// Sized from the measured plant rather than guessed: with ball acceleration
+// a = k * angle, a second-order closed loop of natural frequency w and damping
+// ratio z needs kp = w^2 / k and kd = 2*z*w / k.
+//
+// w = 2 rad/s and z = 0.8 give a settle of a couple of seconds without overshoot,
+// which is about as fast as this rig's ~20 degrees of backlash phase allows.
+constexpr float kPidKp = 0.019f;  // degrees per mm of error
+constexpr float kPidKd = 0.015f;  // degrees per mm/s of ball velocity
+
+// Integral action starts off. The beam's mechanical zero is already trimmed, so
+// there is no standing error for it to remove, and integral action on a double
+// integrator costs phase margin exactly where this plant has least to spare.
+constexpr float kPidKi = 0.0f; // degrees per mm-second
+
+// Hard limit on the integral term's contribution, in degrees. Anti-windup: a
+// ball held against an endstop would otherwise wind this up without limit and
+// then take just as long to unwind once it came free.
+constexpr float kPidMaxIntegralDegrees = 2.0f;
 
 // --- Beam geometry ---
 

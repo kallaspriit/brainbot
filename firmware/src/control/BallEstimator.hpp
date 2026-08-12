@@ -118,4 +118,10 @@ class BallEstimator {
 
     /** Restarts the filter centred on a measurement, with no velocity. */
     void initializeAt(float measuredMm);
+
+    /**
+     * Holds the estimate on the beam. A ball resting against an endstop is not
+     * still accelerating, however hard the model believes it is.
+     */
+    void constrainToBeam();
 };

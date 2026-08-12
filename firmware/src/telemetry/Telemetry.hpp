@@ -17,6 +17,7 @@ struct TelemetrySnapshot {
     St3215::ServoFeedback feedback;
     float estimatedPositionMm = 0.0f;
     float estimatedVelocityMmPerSecond = 0.0f;
+    float targetMm = 0.0f;
 };
 
 namespace Telemetry {

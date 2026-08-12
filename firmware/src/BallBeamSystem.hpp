@@ -112,12 +112,24 @@ class BallBeamSystem {
     /** @returns the most recent ball state handed to a controller. */
     BallBeamState state() const;
 
+    /**
+     * @returns Milliseconds since the last valid measurement, or 0 if there has
+     *          never been one. Compare against the sensor's period: if this
+     *          approaches the staleness timeout, the filter is being torn down
+     *          and rebuilt rather than running.
+     */
+    unsigned long millisSinceMeasurement() const;
+
   private:
     // Ball position is treated as unknown after this long without a valid
     // reading — the ball has been lifted off, or has rolled somewhere the sensor
     // cannot see it. Long enough to ride out a few rejected readings, short
     // enough that a controller does not keep acting on stale data.
-    static constexpr unsigned long kMeasurementTimeoutMs = 200;
+    //
+    // Generous on purpose. A long sensor timing budget drops the measurement rate
+    // to 5 Hz, and a timeout near that period fires intermittently and declares a
+    // perfectly healthy sensor dead every few ticks.
+    static constexpr unsigned long kMeasurementTimeoutMs = 500;
 
     BeamServo& beam_;
     IBallSensor& sensor_;

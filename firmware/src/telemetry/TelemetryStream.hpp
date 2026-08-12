@@ -53,6 +53,7 @@ class TelemetryStream {
         return intervalMs_;
     }
 
+
   private:
     Print& out_;
     BallBeamSystem& system_;

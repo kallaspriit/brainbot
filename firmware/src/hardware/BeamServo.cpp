@@ -6,6 +6,8 @@
 #include "Config.hpp"
 
 bool BeamServo::begin() {
+    trimDegrees_ = Config::kBeamTrimDegrees;
+
     const bool okMode = servo_.setMode(id_, St3215::Mode::Position);
     const bool okPid = servo_.setPid(id_, Config::kBeamServoKp, Config::kBeamServoKd, Config::kBeamServoKi);
     const bool okDeadband = servo_.setDeadband(id_, Config::kBeamServoDeadband, Config::kBeamServoDeadband);
@@ -65,11 +67,15 @@ bool BeamServo::relax() {
 }
 
 int16_t BeamServo::angleToPosition(float angleDegrees) const {
-    const float steps = (angleDegrees + trimDegrees_) * (kStepsPerRevolution / 360.0f);
+    // Trim is a real beam offset, so it is applied before the scale is undone.
+    const float nominalDegrees = (angleDegrees + trimDegrees_) / Config::kBeamAngleScale;
+    const float steps = nominalDegrees * (kStepsPerRevolution / 360.0f);
 
     return (int16_t)(lroundf(steps) + kCentrePosition);
 }
 
 float BeamServo::positionToAngle(int position) const {
-    return ((float)(position - kCentrePosition)) * (360.0f / kStepsPerRevolution) - trimDegrees_;
+    const float nominalDegrees = ((float)(position - kCentrePosition)) * (360.0f / kStepsPerRevolution);
+
+    return nominalDegrees * Config::kBeamAngleScale - trimDegrees_;
 }
