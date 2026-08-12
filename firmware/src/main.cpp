@@ -38,9 +38,12 @@ void setup() {
     Serial.begin(115200);
     Serial.ignoreFlowControl(true);
 
-    // Wait for the monitor, but don't block forever if running headless.
-    while (!Serial && millis() < 8000) {
-        delay(50);
+    // Only wait for a monitor when asked to. Writes cannot block regardless —
+    // ignoreFlowControl() above sees to that — so running headless is safe.
+    if (Config::kWaitForSerialOnBoot) {
+        while (!Serial && millis() < 8000) {
+            delay(50);
+        }
     }
 
     delay(100);
@@ -85,7 +88,17 @@ void setup() {
 
     console.printHelp();
 
-    Serial << endl << "Beam is relaxed. 'angle 0' or a test command takes torque." << endl;
+    Serial << endl;
+
+    if (Config::kAutoStartController) {
+        // Installing a controller takes torque and starts the loop, so the rig
+        // balances on power alone with no console attached.
+        rig.setController(&cascadeController);
+
+        Serial << "Balancing with '" << cascadeController.name() << "' at " << rig.target() << " mm. 'ctrl off' to stop." << endl;
+    } else {
+        Serial << "Beam is relaxed. 'angle 0' or a test command takes torque." << endl;
+    }
 }
 
 void loop() {

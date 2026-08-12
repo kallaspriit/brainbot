@@ -95,6 +95,20 @@ constexpr uint32_t kRangingPeriodMs = 30;
 constexpr uint16_t kMinDistanceMm = 30;
 constexpr uint16_t kMaxDistanceMm = 600;
 
+// --- Startup behaviour ---
+
+// Whether to pause at boot for a serial monitor to attach. Off, so the rig
+// starts balancing on power alone rather than sitting idle for eight seconds
+// waiting for a host that may never connect.
+constexpr bool kWaitForSerialOnBoot = false;
+
+// Whether to install a controller at boot and start balancing immediately.
+//
+// Note this means the beam takes torque at power-up rather than waiting to be
+// asked, which is the whole point when the rig is plugged in to demonstrate
+// itself, but is worth knowing before reaching across it. "ctrl off" stops it.
+constexpr bool kAutoStartController = true;
+
 // --- Loop rates ---
 
 // Control tick on core 1. Faster than the sensor on purpose: the estimator
@@ -146,7 +160,7 @@ constexpr float kSensorNoiseQuadratic = 8.6e-5f;
 // phantom velocity equals the demanded velocity — the integral stops winding and
 // the ball parks short of target. Zero is not a workaround here, it is the
 // honest model for the regime this controller lives in.
-constexpr float kAccelPerDegree = 0.0f;
+constexpr float kAccelPerDegree = 100.0f;
 
 // Acceleration the model does not account for: rolling friction, the ball
 // slipping rather than rolling, the beam flexing. Sets how quickly the filter is
@@ -195,8 +209,8 @@ constexpr float kRollMaxFitMm = 350.0f;
 //
 // w = 2 rad/s and z = 0.8 give a settle of a couple of seconds without overshoot,
 // which is about as fast as this rig's ~20 degrees of backlash phase allows.
-constexpr float kPidKp = 0.019f;  // degrees per mm of error
-constexpr float kPidKd = 0.015f;  // degrees per mm/s of ball velocity
+constexpr float kPidKp = 0.019f; // degrees per mm of error
+constexpr float kPidKd = 0.015f; // degrees per mm/s of ball velocity
 
 // Integral action starts off. The beam's mechanical zero is already trimmed, so
 // there is no standing error for it to remove, and integral action on a double

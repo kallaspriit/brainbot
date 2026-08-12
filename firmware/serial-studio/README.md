@@ -13,8 +13,14 @@ telemetry the firmware emits while `debug on` is active.
 4. Type `debug on` in Serial Studio's console — the dashboard starts updating. `tilt on`
    drives the beam back and forth so there is something to watch.
 
-The beam boots relaxed and takes torque only when something asks it to move, so
-`angle 0` or any test command is what wakes it up.
+By default the rig starts balancing the moment it is powered — no console needed.
+`Config::kAutoStartController` installs the cascade controller at boot and
+`kWaitForSerialOnBoot` skips waiting for a monitor, so plugging it in is enough to
+demonstrate it. **The beam therefore takes torque at power-up**; `ctrl off` levels
+it and hands control back.
+
+Set `kAutoStartController` to false to go back to booting relaxed, where the beam
+takes torque only when `angle 0` or a test command asks it to.
 
 Serial Studio's console shows every incoming byte and has no way to filter frames
 out of it — its toolbar offers only a Text/Hex toggle. A command's reply therefore
