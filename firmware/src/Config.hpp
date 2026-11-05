@@ -160,7 +160,7 @@ constexpr float kSensorNoiseQuadratic = 8.6e-5f;
 // phantom velocity equals the demanded velocity — the integral stops winding and
 // the ball parks short of target. Zero is not a workaround here, it is the
 // honest model for the regime this controller lives in.
-constexpr float kAccelPerDegree = 100.0f;
+constexpr float kAccelPerDegree = 50.0f;
 
 // Acceleration the model does not account for: rolling friction, the ball
 // slipping rather than rolling, the beam flexing. Sets how quickly the filter is
@@ -240,9 +240,23 @@ constexpr float kCascadeMaxVelocityMmPerSecond = 150.0f;
 // of 1/(k*g) — about 0.3 s here, comfortably inside the outer loop's 1.4 s.
 constexpr float kCascadeVelocityGain = 0.015f;
 
-// Integral on the velocity loop, degrees per mm. Removes the standing angle bias
-// that the position loop would otherwise have to hold an error to generate.
-constexpr float kCascadeVelocityIntegral = 0.01f;
+// Integral on the position loop, in 1/s^2. This is the one that matters: it
+// integrates the error we actually care about, so the ball has to arrive at the
+// target rather than merely stop moving.
+//
+// It also survives a biased velocity estimate. The velocity integral below
+// cannot: with the tilt model on, the ball sitting still and the filter reporting
+// a phantom velocity, the velocity error can be driven to zero at any position,
+// so the loop parks wherever it happens to be. Position error has no such null.
+constexpr float kCascadePositionIntegral = 0.1f;
+
+// Ceiling on the position integral's contribution, in mm/s.
+constexpr float kCascadeMaxIntegralVelocity = 50.0f;
+
+// Integral on the velocity loop, degrees per mm. Zero: integral action belongs in
+// one loop or the other, and two integrators in series contribute 180 degrees of
+// lag between them before the plant's own double integration is counted.
+constexpr float kCascadeVelocityIntegral = 0.0f;
 
 // --- Beam geometry ---
 

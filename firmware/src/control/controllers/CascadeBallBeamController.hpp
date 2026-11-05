@@ -31,16 +31,20 @@ class CascadeBallBeamController : public BallBeamController {
     float update(const BallBeamState& state) override;
 
     size_t paramCount() const override {
-        return 4;
+        return 5;
     }
 
     ControllerParam param(size_t index) override;
 
   private:
     float positionGain_;
+    float positionIntegral_;
     float maxVelocity_;
     float velocityGain_;
     float velocityIntegral_;
 
+    // Carried in mm/s and degrees respectively — the units each loop outputs — so
+    // both clamps are expressed in terms that mean something physically.
+    float integralVelocityMmPerSecond_ = 0.0f;
     float integralDegrees_ = 0.0f;
 };
