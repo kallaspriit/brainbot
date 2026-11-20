@@ -1,0 +1,17 @@
+dependencies:
+  idf: '>=5.5'
+  # Waveshare's board support package: display, touch, backlight, I2C, audio. Pulls in esp_lvgl_adapter
+  waveshare/esp32_p4_wifi6_touch_lcd_7b:
+    version: ==3.0.1
+  # The panel driver, used directly by drivers/Display.cpp; the version the BSP resolves to
+  espressif/esp_lcd_ek79007:
+    version: ==2.0.2~1
+  # Pinned to the version Waveshare validates the BSP against
+  lvgl/lvgl:
+    version: ==9.5.0
+    public: true
+  # Bluetooth (and later Wi-Fi) through the C6 co-processor
+  espressif/esp_hosted:
+    version: "^3.1.0"
+  # MIPI-CSI camera (OV5647) through the ISP; 1.x fails on ESP-IDF 5.5.5
+  espressif/esp_video: ^2
